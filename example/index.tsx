@@ -1,8 +1,7 @@
 import 'react-app-polyfill/ie11';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { StoreProvider, createStore, useStore, useDispatcher, useAction, useStores } from '../dist/index';
-import { createState } from '../src/createStore';
+import { StoreProvider, createStore, useStore, useAction, useStores, createState } from '../.';
 
 type CounterState = {
   counter: number;
