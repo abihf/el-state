@@ -1,6 +1,12 @@
 {
   "name": "el-state",
-  "version": "0.1.1",
+  "version": "0.1.2",
+  "license": "MIT",
+  "homepage": "https://github.com/abihf/el-state#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abihf/el-state.git"
+  },
   "main": "dist/index.js",
   "module": "dist/el-state.esm.js",
   "typings": "dist/index.d.ts",
