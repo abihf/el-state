@@ -11,10 +11,7 @@ function deepEqual(a: any, b: any): boolean {
     return a.length === b.length && a.every((item, i) => deepEqual(item, b[i]));
   } else if (typeof a === 'object' && typeof b === 'object') {
     const keys = Object.keys(a);
-    return (
-      deepEqual(keys, Object.keys(b)) &&
-      keys.every(key => deepEqual(a[key], b[key]))
-    );
+    return deepEqual(keys, Object.keys(b)) && keys.every(key => deepEqual(a[key], b[key]));
   }
   return a === b;
 }
@@ -22,10 +19,6 @@ function deepEqual(a: any, b: any): boolean {
 export function defaultStateComparator(prev: any, current: any): boolean {
   return !deepEqual(prev, current);
 }
-
-// export function defaultStateComparator(): boolean {
-//   return true;
-// }
 
 export function subscribeToStateChange(ctx: ContextType, store: StoreData<any>, fn: SubscriptionFn) {
   let set = ctx.subscriptions.get(store);
