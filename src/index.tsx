@@ -1,6 +1,6 @@
 export { StoreProvider } from './provider';
 
-export { createStore } from './createStore';
+export { createStore, createState } from './createStore';
 export { useStore } from './useStore';
 export { useStores } from './useStores';
 
