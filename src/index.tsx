@@ -1,4 +1,4 @@
-export { StoreProvider } from './provider';
+export { StoreProvider, createGlobalStates as createProviderStates, extractGlobalStates as extractProviderStates } from './provider';
 
 export { createStore, createState } from './createStore';
 export { useStore } from './useStore';

@@ -10,6 +10,10 @@ export type StoreActionsMap<State, Actions extends ActionMap<State>> = {
   [i in keyof Actions]: (...args: ActionParameters<Actions[i]>) => DispatchFunction<State, ActionReturn<Actions[i]>>;
 };
 
+export type StoreMap = Record<string, Store<any, ActionMap<any>>>;
+export type StoresState<Stores extends StoreMap> = {
+  [i in keyof Stores]: Stores[i] extends Store<infer State, ActionMap<any>> ? State : never;
+};
 
 export type ActionMap<State> = Record<string, ActionFunction<State>>;
 

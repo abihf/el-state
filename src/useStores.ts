@@ -1,12 +1,8 @@
-import { Store, StateComparator, ActionMap } from './types';
+import { StateComparator, StoreMap, StoresState } from './types';
 import { defaultMapState, defaultStateComparator, subscribeToStateChange, getOrFillState } from './storeHelper';
 import { useStateContext, ContextType } from './provider';
 import { useState, useEffect } from 'react';
 
-type StoreMap = Record<string, Store<any, ActionMap<any>>>;
-type StoresState<Stores extends StoreMap> = {
-  [i in keyof Stores]: Stores[i] extends Store<infer State, ActionMap<any>> ? State : never;
-};
 export type MultiStateMapper<Stores extends StoreMap, Return> = (states: StoresState<Stores>) => Return;
 export function useStores<Stores extends StoreMap, Return>(
   stores: Stores,
@@ -33,6 +29,7 @@ export function useStores<Stores extends StoreMap, Return>(
 
   return current;
 }
+
 function getOrFileStateObject<Stores extends StoreMap>(ctx: ContextType, stores: Stores) {
   return Object.keys(stores).reduce(
     (result, key: keyof Stores) => {
