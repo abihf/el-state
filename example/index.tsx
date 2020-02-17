@@ -1,46 +1,87 @@
 import 'react-app-polyfill/ie11';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { StoreProvider, createStore, useStore, useAction, useStores, createState } from '../.';
+import {
+  StoreProvider,
+  createStore,
+  useStore,
+  useAction,
+  createAction,
+  combineStore,
+  useDispatcher,
+  arrayComparator,
+} from '../src/index';
 
+// util
+const sleep = (duration: number) => new Promise(resolve => setTimeout(resolve, duration));
+
+async function getResetValue() {
+  await sleep(1000);
+  return 0;
+}
+
+// Counter Store
 type CounterState = {
   counter: number;
+  loading: boolean;
+  interval: NodeJS.Timeout | null;
 };
-const counterStore = createStore({
-  initialState: createState<CounterState>({ counter: 0 }),
-  actions: {
-    increase(ctx) {
-      // ctx.state.counter++; // => compile error: counter is readonly
-      ctx.setState(state => ({ counter: state.counter + 1 }));
-    },
-    set(ctx, counter: number) {
-      ctx.setState({ counter });
-    },
-    reset(ctx) {
-      this.set(ctx, 0);
-    },
+const counterStore = createStore<CounterState>('counter', { counter: 0, interval: null, loading: false });
+const setCounter = createAction(counterStore, ({ state }, counter: number) => ({ ...state, counter }), 'set');
+const resetCounter = createAction(
+  counterStore,
+  async ({ getState, dispatch, setState }) => {
+    setState({ ...getState(), loading: true }, true);
+    const resetValue = await getResetValue();
+    dispatch(setCounter(resetValue));
+    setState({ ...getState(), loading: false }, true);
   },
-});
+  'reset'
+);
+const increaseCounter = createAction(
+  counterStore,
+  ({ state }) => ({ ...state, counter: state.counter + 1 }),
+  'increase'
+);
+const startCounter = createAction(
+  counterStore,
+  ({ setState, dispatch, commit }) => {
+    // dispatch(stopCounter());
+    const interval = setInterval(() => {
+      dispatch(increaseCounter());
+      commit();
+    }, 1000);
+    setState(state => ({ ...state, interval }));
+  },
+  'start'
+);
+const stopCounter = createAction(
+  counterStore,
+  ({ state }) => {
+    if (state.interval) clearInterval(state.interval);
+    return { ...state, interval: null };
+  },
+  'stop'
+);
 
-const nameStore = createStore({
-  initialState: createState<string>(''),
-  actions: {
-    set(ctx, name: string) {
-      ctx.setState(name);
-      if (name === 'abihf') {
-        ctx.dispatch(counterStore.set(999));
-      }
-    },
-    reset(ctx) {
-      this.set(ctx, '');
-    },
+const nameStore = createStore('name', () => '');
+const setName = createAction(
+  nameStore,
+  async (ctx, name: string) => {
+    if (name === 'xyz') {
+      ctx.dispatch(setCounter(100));
+    }
+    return name;
   },
-});
+  'set'
+);
+const resetName = createAction(nameStore, () => '', 'reset');
 
 const App = () => (
   <div>
     <Display />
     <Control />
+    <StartStop />
     <hr />
     <NameForm />
     <hr />
@@ -49,32 +90,49 @@ const App = () => (
 );
 
 function Display() {
-  const counter = useStore(counterStore, state => state.counter);
-  const set = useAction(counterStore.set);
+  const [counter, loading] = useStore(counterStore, state => [state.counter, state.loading], arrayComparator);
+  const set = useAction(setCounter);
   return (
     <div>
-      Counter: <input value={counter} onChange={e => set(parseInt(e.currentTarget.value))} />
+      Counter: <input value={counter} disabled={loading} onChange={e => set(parseInt(e.currentTarget.value))} />
+      {loading ? ' Loading' : null}
     </div>
   );
 }
 
 function Control() {
-  const increase = useAction(counterStore.increase());
-  const reset = useAction(counterStore.reset());
+  const isRunning = useStore(counterStore, counter => counter.interval !== null);
+  const increase = useAction(increaseCounter());
+  const reset = useAction(resetCounter());
 
   return (
     <div>
       Counter Control:
-      <button onClick={increase}>Increase</button>
-      <button onClick={reset}>Reset</button>
+      <button onClick={increase} disabled={isRunning}>
+        Increase
+      </button>
+      <button onClick={reset} disabled={isRunning}>
+        Reset
+      </button>
     </div>
+  );
+}
+
+function StartStop() {
+  const isRunning = useStore(counterStore, counter => counter.interval !== null);
+  const dispatch = useDispatcher();
+
+  return isRunning ? (
+    <button onClick={() => dispatch(stopCounter())}>Stop</button>
+  ) : (
+    <button onClick={() => dispatch(startCounter())}>Start</button>
   );
 }
 
 function NameForm() {
   const name = useStore(nameStore);
-  const set = useAction(nameStore.set);
-  const reset = useAction(nameStore.reset());
+  const set = useAction(setName);
+  const reset = useAction(resetName);
   return (
     <div>
       Name:
@@ -84,16 +142,14 @@ function NameForm() {
   );
 }
 
+const allStore = combineStore(counterStore, nameStore);
 function Combine() {
-  const combined = useStores(
-    { counter: counterStore, name: nameStore },
-    ({ counter, name }) => `Counter ${counter.counter}, Name: ${name}`
-  );
+  const combined = useStore(allStore, ([counter, name]) => `Counter ${counter.counter}, Name: ${name}`);
   return <b>{combined}</b>;
 }
 
 ReactDOM.render(
-  <StoreProvider>
+  <StoreProvider enableDevTool={true}>
     <App />
   </StoreProvider>,
   document.getElementById('root')

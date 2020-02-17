@@ -1,27 +1,81 @@
 import * as React from 'react';
-import { StoreData, SubscriptionSet, Store, StoreMap, StoresState } from './types';
+import { unstable_batchedUpdates } from 'react-dom';
+import { DevTool, initDevTool } from './devTool';
+import { StateInitiator, StateInitiatorFunction, Store } from './store';
 
-export type GlobalStates = WeakMap<StoreData<any>, unknown>
-export type ContextType = {
-  states: GlobalStates;
-  subscriptions: WeakMap<StoreData<any>, SubscriptionSet>;
+export type GlobalStates = Map<string, unknown>;
+
+export type SubscriptionFn = () => void;
+export type SubscriptionSet = Set<SubscriptionFn>;
+
+export type StoreManager = {
+  getState<State>(store: Store<State>): State;
+  commit(states: Map<string, unknown>): void;
+  subscribe(store: Store<unknown>, cb: SubscriptionFn): () => void;
+
+  devTool?: DevTool;
 };
-const Context = React.createContext<ContextType | undefined>(undefined);
 
+// React context
+const Context = React.createContext<StoreManager | undefined>(undefined);
 
 type ProviderProps = {
-  states?: GlobalStates;
+  initialStates?: GlobalStates;
+  enableDevTool?: boolean;
 };
 
-export const StoreProvider: React.FC<ProviderProps> = ({ states, ...props }) => {
-  const value: ContextType = {
-    states: states || createGlobalStates(),
-    subscriptions: new WeakMap(),
+function createManager(initialStates?: GlobalStates, enableDevTool?: boolean) {
+  const states = initialStates || new Map<string, unknown>();
+  const subscriptions = new Map<string, SubscriptionSet>();
+  const manager: StoreManager = {
+    subscribe(store, fn) {
+      const name = store.name;
+      if (!subscriptions.has(name)) {
+        subscriptions.set(name, new Set<SubscriptionFn>());
+      }
+      const set = subscriptions.get(name)!;
+      set.add(fn);
+      return () => set.delete(fn);
+    },
+    getState<State>(store: Store<State>) {
+      const name = store.name;
+      if (states.has(name)) {
+        return states.get(name) as State;
+      } else {
+        const state = isInitiatorFunction(store.initialState) ? store.initialState() : store.initialState;
+        states.set(name, state);
+        return state;
+      }
+    },
+    commit(newStates) {
+      const triggered: SubscriptionSet = new Set();
+      newStates.forEach((state, name) => {
+        states.set(name, state);
+        const callbacks = subscriptions.get(name);
+        if (callbacks) {
+          callbacks.forEach(cb => triggered.add(cb));
+        }
+      });
+      if (triggered.size > 0) {
+        unstable_batchedUpdates(callbacks => callbacks.forEach(cb => cb()), triggered);
+      }
+    },
   };
-  return <Context.Provider {...props} value={value} />;
+
+  if (enableDevTool) {
+    manager.devTool = initDevTool(states, subscriptions);
+  }
+  return manager;
+}
+
+export const StoreProvider: React.FC<ProviderProps> = ({ initialStates, enableDevTool, ...props }) => {
+  const manager = React.useMemo(() => createManager(initialStates, enableDevTool), [initialStates, enableDevTool]);
+  React.useEffect(() => () => manager.devTool?.disconnect());
+
+  return <Context.Provider {...props} value={manager} />;
 };
 
-export function useStateContext() {
+export function useStoreManager() {
   const ctx = React.useContext(Context);
   if (!ctx) {
     throw new Error('Not inside provider');
@@ -29,16 +83,6 @@ export function useStateContext() {
   return ctx;
 }
 
-export function createGlobalStates(initialStates: Array<{store: Store<any, any>, state: unknown}> = []): GlobalStates {
-  return new WeakMap<StoreData<any>, unknown>(initialStates.map(({store, state}) => ([store._storeData, state])));
-}
-
-export function extractGlobalStates<Stores extends StoreMap>(ps: GlobalStates, stores: Stores): Partial<StoresState<Stores>> {
-  return Object.keys(stores).reduce((result, key: keyof Stores) => {
-    const mapKey = stores[key]._storeData;
-    if (ps.has(mapKey)) {
-      result[key] = ps.get(mapKey) as StoresState<Stores>[typeof key];
-    }
-    return result;
-  }, {} as Partial<StoresState<Stores>>);
+function isInitiatorFunction<State>(x: StateInitiator<State>): x is StateInitiatorFunction<State> {
+  return typeof x === 'function';
 }

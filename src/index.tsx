@@ -1,7 +1,6 @@
-export { StoreProvider, createGlobalStates as createProviderStates, extractGlobalStates as extractProviderStates } from './provider';
-
-export { createStore, createState } from './createStore';
-export { useStore } from './useStore';
-export { useStores } from './useStores';
-
-export { useDispatcher, useAction } from './dispatcher';
+export { createAction } from './action';
+export { arrayComparator, strictComparator } from './comparator';
+export { useAction, useDispatcher } from './dispatcher';
+export { StoreProvider } from './provider';
+export { createStore } from './store';
+export { combineStore, useStore } from './useStore';

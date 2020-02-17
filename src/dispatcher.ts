@@ -1,96 +1,126 @@
 import { useMemo } from 'react';
-import { ContextType, useStateContext } from './provider';
-import { getOrFillState } from './storeHelper';
-import { Dispatcher, StateUpdater, StateUpdaterFunction, StoreData, SubscriptionSet, DispatchFunction } from './types';
+import { Action, ActionFunction, ActionPromise, ActionPromiseFunction } from './action';
+import { StoreManager, useStoreManager } from './provider';
+import { Store } from './store';
 
-function isStateUpdaterFunction<State>(updater: StateUpdater<State>): updater is StateUpdaterFunction<State> {
-  return typeof updater === 'function';
+export interface Dispatcher {
+  <State>(action: Action<State>): void;
+  <State>(action: ActionPromise<State>): Promise<void>;
 }
 
-function isPromise<T = any>(p: T | Promise<T>): p is Promise<T> {
-  return 'then' in p && typeof p.then === 'function';
-}
+export type ActionContext<State> = {
+  state: DeepReadonly<State>;
+  getState(): DeepReadonly<State>;
+  setState(updater: StateUpdater<State>, forceCommit?: boolean): void;
 
-type DispatcherOption = {
-  changesSet: Set<StoreData<any>>;
-  changesMap: WeakMap<StoreData<any>, unknown>;
+  disableAutoCommit(): void;
+  commit(): void;
+
+  getStore<OtherState>(store: Store<OtherState>): OtherState;
+  dispatch: Dispatcher;
+};
+
+type StateUpdater<State> = State | StateUpdaterFunction<State>;
+type StateUpdaterFunction<State> = (prev: DeepReadonly<State>) => State;
+
+type DeepReadonly<T> = T extends (infer R)[]
+  ? DeepReadonlyArray<R>
+  : T extends Function
+  ? T
+  : T extends object
+  ? DeepReadonlyObject<T>
+  : T;
+
+interface DeepReadonlyArray<T> extends ReadonlyArray<DeepReadonly<T>> {}
+
+type DeepReadonlyObject<T> = {
+  readonly [P in keyof T]: DeepReadonly<T[P]>;
+};
+
+type DispatcherRoot = {
+  changesMap: Map<string, unknown>;
   commit(): void;
 };
 
-function createDispatcher(context: ContextType, opt?: DispatcherOption): Dispatcher {
-  return dispatchFn => {
-    let autoCommit = !opt;
-    const changesSet = opt ? opt.changesSet : new Set<StoreData<any>>();
-    let changesMap = opt ? opt.changesMap : new WeakMap();
+function createDispatcher(manager: StoreManager, root?: DispatcherRoot): Dispatcher {
+  return <State>(action: Action<State> | ActionPromise<State>): any => {
+    let autoCommit = !root; // root dispatcher
+    const storeName = action.store.name;
 
-    const commit = opt
-      ? opt.commit
+    const changesMap = root?.changesMap ?? new Map<string, unknown>();
+    const commit = root
+      ? root.commit
       : () => {
-          const allSubscription: SubscriptionSet = new Set();
-          changesSet.forEach(id => {
-            context.states.set(id, changesMap.get(id));
-            const subscriptions = context.subscriptions.get(id);
-            if (subscriptions) {
-              subscriptions.forEach(fn => allSubscription.add(fn));
-            }
-          });
-          allSubscription.forEach(fn => {
-            try {
-              fn();
-            } catch (e) {
-              console.error('Error when calling subscription', e);
-            }
-          });
-          changesSet.clear();
-          changesMap = new WeakMap();
+          manager.commit(changesMap);
+          changesMap.clear();
         };
 
-    const getState = () => changesMap.get(dispatchFn.store) || getOrFillState<any>(context, dispatchFn.store);
-    const result = dispatchFn({
+    const getState = () => (changesMap.get(storeName) || manager.getState(action.store)) as DeepReadonly<State>;
+    const setState = (updater: StateUpdater<State>, forceCommit: boolean = false) => {
+      const state = isStateUpdaterFunction(updater) ? updater(getState()) : updater;
+      changesMap.set(storeName, state);
+      if (forceCommit) {
+        commit();
+      }
+    };
+
+    const result = action.call({
       state: getState(),
       getState,
-      setState: (updater, forceCommit: boolean = false) => {
-        const state = isStateUpdaterFunction(updater) ? updater(getState()) : updater;
-        changesSet.add(dispatchFn.store);
-        changesMap.set(dispatchFn.store, state);
-        if (forceCommit) {
-          commit();
-        }
-      },
+      setState,
 
       commit,
       disableAutoCommit() {
         autoCommit = false;
       },
 
-      getStore: otherStore => (changesMap.get(otherStore._storeData) as any) || getOrFillState(context, otherStore._storeData),
-      dispatch: createDispatcher(context, { changesMap, commit, changesSet }),
+      getStore: otherStore => (changesMap.get(otherStore.name) as any) || manager.getState(otherStore),
+      dispatch: createDispatcher(manager, { changesMap, commit }),
     });
-    if (autoCommit) {
-      if (result && isPromise(result)) {
-        result.then(() => commit());
-      } else {
+
+    const handleResult = (newState: State | void) => {
+      if (newState !== undefined) {
+        setState(newState);
+      }
+      if (autoCommit) {
         commit();
       }
+      if (manager.devTool) {
+        let type = `${action.store.name}.${action.name || '<unknown>'}`;
+        if (!autoCommit) {
+          type += ' (deferred)';
+        }
+        manager.devTool.log({ type, args: action.args });
+      }
+    };
+
+    if (isPromise(result)) {
+      return result.then(handleResult);
+    } else {
+      handleResult(result);
     }
-    return result;
   };
 }
 
-export function useDispatcher(): Dispatcher {
-  const ctx = useStateContext();
-  return useMemo(() => createDispatcher(ctx), [ctx]);
+function isPromise<T>(p: T | Promise<T>): p is Promise<T> {
+  return typeof p === 'object' && 'then' in p && typeof p.then === 'function';
 }
 
-export function useAction<State, Return>(action: DispatchFunction<State, Return>): () => Return;
+export function useDispatcher(): Dispatcher {
+  const manager = useStoreManager();
+  return useMemo(() => createDispatcher(manager), [manager]);
+}
 
-export function useAction<State, Args extends any[], Return>(
-  action: (...args: Args) => DispatchFunction<State, Return>
-): (...args: Args) => Return;
+export function useAction<State>(action: Action<State>): () => void;
+export function useAction<State>(action: ActionPromise<State>): () => Promise<void>;
 
-export function useAction<State, Args extends any[], Return>(
-  action: ((...args: Args) => DispatchFunction<State, Return>) | DispatchFunction<State, Return>
-) {
+export function useAction<State, Args extends any[]>(action: ActionFunction<State, Args>): (...args: Args) => void;
+
+export function useAction<State, Args extends any[]>(
+  action: ActionPromiseFunction<State, Args>
+): (...args: Args) => Promise<void>;
+
+export function useAction<State, Args extends any[]>(action: Action<State> | ActionFunction<State, Args>) {
   const dispatch = useDispatcher();
   return useMemo(() => {
     if ('store' in action) {
@@ -99,4 +129,8 @@ export function useAction<State, Args extends any[], Return>(
       return (...args: Args) => dispatch(action(...args));
     }
   }, [dispatch]);
+}
+
+function isStateUpdaterFunction<State>(updater: StateUpdater<State>): updater is StateUpdaterFunction<State> {
+  return typeof updater === 'function';
 }
