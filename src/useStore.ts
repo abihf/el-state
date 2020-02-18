@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo, useCallback, useRef, useReducer } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { arrayComparator, strictComparator } from './comparator';
 import { StoreManager, useStoreManager } from './provider';
 import { Store } from './store';
-import { arrayComparator, strictComparator } from './comparator';
 
 export type StateComparator<T> = (prev: T, current: T) => boolean;
 
@@ -57,10 +57,10 @@ export function useStore<Return, States extends any[]>(
   const manager = useStoreManager();
 
   // normalize parameters, all the logic bellow assume user input multiple stores
-  const stores = useMemo(() => (Array.isArray(inputStore) ? inputStore : [inputStore]), [inputStore]);
+  const stores = Array.isArray(inputStore) ? inputStore : [inputStore];
   const normalizedMapState = useCallback(
     (states: unknown[]) => (Array.isArray(inputStore) ? mapState(states) : mapState(states[0])),
-    [inputStore, ...deps] // don't add mapState
+    [Array.isArray(inputStore), ...deps] // don't add mapState
   );
 
   // fetch state from store manager, and transform the result.
@@ -69,7 +69,7 @@ export function useStore<Return, States extends any[]>(
     const states = getOrFillStateArray(manager, stores);
     const result = normalizedMapState(states);
     return result;
-  }, [manager, stores, normalizedMapState]);
+  }, [manager, normalizedMapState, ...stores]);
 
   // use ref to store current result and initialize the value.
   // the type can not be `Return` since it may be undefined
@@ -88,7 +88,7 @@ export function useStore<Return, States extends any[]>(
   // if it changed, update the value and force rerender
   const updateResultAndForceRender = useCallback(() => {
     const result = getCurrentResult();
-    const equal = comparator(value.current?.result!, result);
+    const equal = comparator(value.current!.result, result);
     if (!equal) {
       value.current = { result };
       forceRerender({});
@@ -103,7 +103,7 @@ export function useStore<Return, States extends any[]>(
     // and return function to unscribe them
     const unsubscribeFunctions = stores.map(store => manager.subscribe(store, updateResultAndForceRender));
     return () => unsubscribeFunctions.forEach(fn => fn());
-  }, [manager, stores, updateResultAndForceRender]);
+  }, [manager, updateResultAndForceRender, ...stores]);
 
   return value.current.result;
 }
