@@ -1,4 +1,4 @@
-# él-staté
+# ![nachos](https://img.icons8.com/officel/30/000000/nachos.png) él-staté
 
 React state management with hook
 
@@ -71,3 +71,6 @@ function MyComponent() {
   // use this function as onClick handle
 }
 ```
+
+## Attribution
+[Nachos icon by Icons8](https://icons8.com/icon/36KGWdxi97kQ/nachos)
