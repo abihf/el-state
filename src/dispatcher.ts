@@ -9,14 +9,45 @@ export interface Dispatcher {
 }
 
 export type ActionContext<State> = {
+  /**
+   * State when the action is called. For complex action, please use {@link ActionContext.getState | getState}
+   */
   state: DeepReadonly<State>;
+
+  /**
+   * Get current state of associated store
+   */
   getState(): DeepReadonly<State>;
+
+  /**
+   *
+   * @param updater the new state, or function that produce new state
+   * @param forceCommit if true, commit all changes after setting this state
+   */
   setState(updater: StateUpdater<State>, forceCommit?: boolean): void;
 
+  /**
+   * by default, action that called from {@link useAction} and {@link useDispatcher}
+   * will be automatically commited after the action done
+   */
   disableAutoCommit(): void;
+
+  /**
+   * manually flush all pending changes to global stores, and trigger rerender
+   * of changed components
+   */
   commit(): void;
 
+  /**
+   * get current state of the other store
+   *
+   * @param store other store
+   */
   getStore<OtherState>(store: Store<OtherState>): OtherState;
+
+  /**
+   * dispatch other action
+   */
   dispatch: Dispatcher;
 };
 
