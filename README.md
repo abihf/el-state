@@ -7,42 +7,43 @@ React state management with hook
 Please see [example](./example/index.tsx).
 
 ### Use StoreProvider
+
 ```js
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { StoreProvider } from 'el-state';
 import App from './App';
 
-ReactDOM.render(<StoreProvider><App /></StoreProvider>, document.getElementById('root'));
+ReactDOM.render(
+  <StoreProvider>
+    <App />
+  </StoreProvider>,
+  document.getElementById('root')
+);
 ```
 
-### Define a store
+### Define a store & actions
+
 ```ts
 import { createStore, createState } from 'el-state';
 
 type CounterState = {
   counter: number;
 };
-const counterStore = createStore({
-  initialState: createState<CounterState>({ counter: 0 }),
-  actions: {
-    increase(ctx) {
-      // ctx.state.counter++; // => compile error: counter is readonly
-      ctx.setState(state => ({ counter: state.counter + 1 }));
-    },
-    set(ctx, counter: number) {
-      ctx.setState({ counter });
-    },
-    reset(ctx) {
-      this.set(ctx, 0);
-    },
-  },
-});
+
+export const counterStore = createStore<CounterState>('counter', { counter: 0 });
+
+export const setCounter = createAction(counterStore, ({ state }, counter: number) => ({ ...state, counter }));
+
+export const resetCounter = createAction(counterStore, ({ dispatch }) => dispatch(setCounter(0)));
+
+export const increaseCounter = createAction(counterStore, ({ state }) => ({ ...state, counter: state.counter + 1 }));
 ```
 
 ### Use the store
-```js
-const MyComononent: React.FC = () => {
+
+```jsx
+function MyComponent() {
   const counter = useStore(counterStore, state => state.counter);
 
   // use the counter
@@ -50,19 +51,23 @@ const MyComononent: React.FC = () => {
 ```
 
 ### Call an action
-```js
-const MyComononent: React.FC = () => {
-  const increaseCounter = useAction(counterStore.increase);
+
+```jsx
+function MyComponent() {
+  const increase = useAction(increaseCounter);
+
   // use this function as onClick handle
+  <button onClick={() => increase()}>Button</button>;
 }
 ```
 
 ### Use dispatcher
-```js
-const MyComononent: React.FC = () => {
+
+```jsx
+function MyComponent() {
   const dispatch = useDispatcher();
 
-  const onBtnIncreasePressed = () => dispatch(counterStore.increase());
+  const onBtnIncreasePressed = () => dispatch(increaseCounter());
   // use this function as onClick handle
 }
 ```
