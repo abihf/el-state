@@ -159,7 +159,7 @@ export function useAction<State, Args extends any[]>(action: Action<State> | Act
     } else {
       return (...args: Args) => dispatch(action(...args));
     }
-  }, [dispatch]);
+  }, [dispatch, action]);
 }
 
 function isStateUpdaterFunction<State>(updater: StateUpdater<State>): updater is StateUpdaterFunction<State> {

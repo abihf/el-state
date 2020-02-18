@@ -58,9 +58,12 @@ export function useStore<Return, States extends any[]>(
 
   // normalize parameters, all the logic bellow assume user input multiple stores
   const stores = Array.isArray(inputStore) ? inputStore : [inputStore];
+
+  // mapState maybe has different reference, use `deps` argument if it depends on other variable
   const normalizedMapState = useCallback(
     (states: unknown[]) => (Array.isArray(inputStore) ? mapState(states) : mapState(states[0])),
-    [Array.isArray(inputStore), ...deps] // don't add mapState
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [Array.isArray(inputStore), ...deps]
   );
 
   // fetch state from store manager, and transform the result.
@@ -69,7 +72,8 @@ export function useStore<Return, States extends any[]>(
     const states = getOrFillStateArray(manager, stores);
     const result = normalizedMapState(states);
     return result;
-  }, [manager, normalizedMapState, ...stores]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manager, normalizedMapState, ...stores]); // array stores maybe recreated but not its values
 
   // use ref to store current result and initialize the value.
   // the type can not be `Return` since it may be undefined
@@ -93,7 +97,8 @@ export function useStore<Return, States extends any[]>(
       value.current = { result };
       forceRerender({});
     }
-  }, [value, getCurrentResult, forceRerender]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, getCurrentResult, forceRerender]); // comparator must be pure function
 
   useEffect(() => {
     // maybe the state was changed while this component is being rendered
@@ -103,7 +108,8 @@ export function useStore<Return, States extends any[]>(
     // and return function to unscribe them
     const unsubscribeFunctions = stores.map(store => manager.subscribe(store, updateResultAndForceRender));
     return () => unsubscribeFunctions.forEach(fn => fn());
-  }, [manager, updateResultAndForceRender, ...stores]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manager, updateResultAndForceRender, ...stores]); // but not its values
 
   return value.current.result;
 }
