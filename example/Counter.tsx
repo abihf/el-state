@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useStore, useAction, useDispatcher, arrayComparator } from 'el-state';
+import { useStore, useAction, useDispatcher, arrayComparator } from '../src/index';
 
 import { counterStore, setCounter, resetCounter, increaseCounter, stopCounter, startCounter } from './counterStore';
 

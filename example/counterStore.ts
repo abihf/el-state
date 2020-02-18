@@ -1,4 +1,4 @@
-import { createStore, createAction } from 'el-state';
+import { createStore, createAction } from '../src/index';
 
 // util
 const sleep = (duration: number) => new Promise(resolve => setTimeout(resolve, duration));
@@ -12,7 +12,7 @@ async function getResetValue() {
 type CounterState = {
   counter: number;
   loading: boolean;
-  interval: number | null;
+  interval: NodeJS.Timeout | null;
 };
 export const counterStore = createStore<CounterState>('counter', {
   counter: 0,

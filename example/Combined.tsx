@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useStore, combineStore } from 'el-state';
+import { useStore, combineStore } from '../src/index';
 
 import { counterStore } from './counterStore';
 import { nameStore } from './nameStore';

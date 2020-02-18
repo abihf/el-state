@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useStore, useAction } from 'el-state';
+import { useStore, useAction } from '../src/index';
 
 import { nameStore, setName, resetName } from './nameStore';
 

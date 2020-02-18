@@ -1,4 +1,4 @@
-import { createStore, createAction } from 'el-state';
+import { createStore, createAction } from '../src/index';
 import { setCounter } from './counterStore';
 
 export const nameStore = createStore('name', () => '');
