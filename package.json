@@ -12,7 +12,8 @@
   "typings": "dist/index.d.ts",
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "!dist/*.test.d.ts"
   ],
   "scripts": {
     "start": "tsdx watch",

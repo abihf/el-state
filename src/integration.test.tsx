@@ -1,19 +1,15 @@
 import { fireEvent, render } from '@testing-library/react';
 import * as React from 'react';
-import { createAction } from './action';
-import { useAction, useDispatcher } from './dispatcher';
-import { StoreProvider } from './provider';
-import { createStore } from './store';
-import { combineStore, useStore } from './useStore';
+import { combineStore, createAction, createStore, StoreProvider, useAction, useDispatcher, useStore } from './index';
 
 // counter store
-const counterStore = createStore('counter', 0);
+const counterStore = createStore('test.integration.counter', 0);
 const setCounter = createAction(counterStore, (_, value: number) => value);
 const resetCounter = createAction(counterStore, ctx => ctx.dispatch(setCounter(0)));
 const increaseCounter = createAction(counterStore, ctx => ctx.state + 1);
 
 // name store
-const nameStore = createStore('name', () => '');
+const nameStore = createStore('test.integration.name', () => '');
 const setName = createAction(nameStore, async (ctx, name: string) => {
   if (name === 'xyz') {
     await ctx.dispatch(setCounter(100));
