@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { unstable_batchedUpdates } from 'react-dom';
 import { DevTool, initDevTool } from './devTool';
-import { StateInitiator, StateInitiatorFunction, Store } from './store';
+import { Store } from './store';
 
 export type GlobalStates = Map<string, unknown>;
 
@@ -42,7 +42,7 @@ function createManager(initialStates?: GlobalStates, enableDevTool?: boolean) {
       if (states.has(name)) {
         return states.get(name) as State;
       } else {
-        const state = isInitiatorFunction(store.initialState) ? store.initialState() : store.initialState;
+        const state = store.initState();
         states.set(name, state);
         return state;
       }
@@ -81,8 +81,4 @@ export function useStoreManager() {
     throw new Error('Not inside provider');
   }
   return ctx;
-}
-
-function isInitiatorFunction<State>(x: StateInitiator<State>): x is StateInitiatorFunction<State> {
-  return typeof x === 'function';
 }
