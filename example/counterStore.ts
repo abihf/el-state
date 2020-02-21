@@ -45,11 +45,10 @@ export const increaseCounter = createAction(
 
 export const startCounter = createAction(
   counterStore,
-  ({ mergeState, dispatch, commit }) => {
+  ({ mergeState, dispatch }) => {
     dispatch(stopCounter);
     const interval = setInterval(() => {
       dispatch(increaseCounter);
-      commit();
     }, 1000);
     mergeState({ interval });
   },
