@@ -1,18 +1,19 @@
 import { fireEvent, render } from '@testing-library/react';
 import * as React from 'react';
 import { combineStore, createAction, createStore, StoreProvider, useAction, useDispatcher, useStore } from './index';
+import { useActionCallback } from './useAction';
 
 // counter store
 const counterStore = createStore('test.integration.counter', 0);
 const setCounter = createAction(counterStore, (_, value: number) => value);
-const resetCounter = createAction(counterStore, ctx => ctx.dispatch(setCounter(0)));
+const resetCounter = createAction(counterStore, ctx => ctx.dispatch(setCounter, 0));
 const increaseCounter = createAction(counterStore, ctx => ctx.state + 1);
 
 // name store
 const nameStore = createStore('test.integration.name', () => '');
-const setName = createAction(nameStore, async (ctx, name: string) => {
+const setName = createAction(nameStore, (ctx, name: string) => {
   if (name === 'xyz') {
-    await ctx.dispatch(setCounter(100));
+    ctx.dispatch(setCounter, 100);
   }
   return name;
 });
@@ -20,11 +21,11 @@ const setName = createAction(nameStore, async (ctx, name: string) => {
 const SimpleCounter = () => {
   const counter = useStore(counterStore, counter => String(counter));
   const dispatch = useDispatcher();
-  const reset = useAction(resetCounter());
+  const reset = useAction(resetCounter);
   return (
     <div>
       <div data-testid="counter">{counter}</div>
-      <button onClick={() => dispatch(increaseCounter())} data-testid="btn-increase" />
+      <button onClick={() => dispatch(increaseCounter)} data-testid="btn-increase" />
       <button onClick={reset} data-testid="btn-reset" />
     </div>
   );
@@ -32,9 +33,9 @@ const SimpleCounter = () => {
 
 const NameInput = () => {
   const name = useStore(nameStore);
-  const setNameAction = useAction(setName);
+  const onChange = useActionCallback(setName, (e: React.ChangeEvent<HTMLInputElement>) => [e.target.value]);
 
-  return <input data-testid="input-name" value={name} onChange={e => setNameAction(e.target.value)} />;
+  return <input data-testid="input-name" value={name} onChange={onChange} />;
 };
 
 const Combined = () => {

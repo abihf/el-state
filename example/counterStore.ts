@@ -20,15 +20,19 @@ export const counterStore = createStore<CounterState>('counter', {
   loading: false,
 });
 
-export const setCounter = createAction(counterStore, ({ state }, counter: number) => ({ ...state, counter }), 'set');
+export const setCounter = createAction(
+  counterStore,
+  ({ mergeState }, counter: number) => mergeState({ counter }),
+  'set'
+);
 
 export const resetCounter = createAction(
   counterStore,
-  async ({ getState, dispatch, setState }) => {
-    setState({ ...getState(), loading: true }, true);
+  async ({ dispatch, mergeState }) => {
+    mergeState({ loading: true }, true);
     const resetValue = await getResetValue();
-    dispatch(setCounter(resetValue));
-    setState({ ...getState(), loading: false }, true);
+    dispatch(setCounter, resetValue);
+    mergeState({ loading: false });
   },
   'reset'
 );
@@ -41,13 +45,13 @@ export const increaseCounter = createAction(
 
 export const startCounter = createAction(
   counterStore,
-  ({ setState, dispatch, commit }) => {
-    dispatch(stopCounter());
+  ({ mergeState, dispatch, commit }) => {
+    dispatch(stopCounter);
     const interval = setInterval(() => {
-      dispatch(increaseCounter());
+      dispatch(increaseCounter);
       commit();
     }, 1000);
-    setState(state => ({ ...state, interval }));
+    mergeState({ interval });
   },
   'start'
 );

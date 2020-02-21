@@ -1,14 +1,13 @@
-import { useMemo } from 'react';
-import { Action, ActionFunction, ActionPromise, ActionPromiseFunction } from './action';
+import { Action, ActionPromise } from './action';
 import { StoreManager, useStoreManager } from './provider';
 import { Store } from './store';
 
 export interface Dispatcher {
-  <State>(action: Action<State>): void;
-  <State>(action: ActionPromise<State>): Promise<void>;
+  <State, Args extends any[]>(action: Action<State, Args>, ...args: Args): void;
+  <State, Args extends any[]>(action: ActionPromise<State, Args>, ...args: Args): Promise<void>;
 }
 
-export type ActionContext<State> = {
+type DispatchContextBase<State> = {
   /**
    * State when the action is called. For complex action, please use {@link ActionContext.getState | getState}
    */
@@ -51,6 +50,19 @@ export type ActionContext<State> = {
   dispatch: Dispatcher;
 };
 
+type MergableDispatchContext<State> = DispatchContextBase<State> & {
+  /**
+   * Shallow merge current state with `partialState`.
+   * Only valid for object based State
+   *
+   * @param partialState object that will be merged to current state
+   * @param forceCommit if true, commit all changes after merging
+   */
+  mergeState(partialState: State extends object ? Partial<State> : never, forceCommit?: boolean): void;
+};
+
+export type DispatchContext<State> = State extends object ? MergableDispatchContext<State> : DispatchContextBase<State>;
+
 type StateUpdater<State> = State | StateUpdaterFunction<State>;
 type StateUpdaterFunction<State> = (prev: DeepReadonly<State>) => State;
 
@@ -73,8 +85,13 @@ type DispatcherRoot = {
   commit(): void;
 };
 
-function createDispatcher(manager: StoreManager, root?: DispatcherRoot): Dispatcher {
-  return <State>(action: Action<State> | ActionPromise<State>): any => {
+export function useDispatcher(): Dispatcher {
+  const manager = useStoreManager();
+  return manager.dispatcher;
+}
+
+export function createDispatcher(manager: StoreManager, root?: DispatcherRoot): Dispatcher {
+  return <State, Args extends any[]>(action: Action<State, Args> | ActionPromise<State, Args>, ...args: Args): any => {
     let autoCommit = !root; // root dispatcher
     const storeName = action.store.name;
 
@@ -95,10 +112,17 @@ function createDispatcher(manager: StoreManager, root?: DispatcherRoot): Dispatc
       }
     };
 
-    const result = action.call({
+    const dispatchContext: MergableDispatchContext<State> = {
       state: getState(),
       getState,
       setState,
+      mergeState(partialState, forceCommit) {
+        const state = getState() as State;
+        if (typeof state !== 'object' || Array.isArray(state)) {
+          throw new Error('Merge state only available for object based state');
+        }
+        setState(Object.assign({}, state, partialState), forceCommit);
+      },
 
       commit,
       disableAutoCommit() {
@@ -107,7 +131,9 @@ function createDispatcher(manager: StoreManager, root?: DispatcherRoot): Dispatc
 
       getStore: otherStore => (changesMap.get(otherStore.name) as any) || manager.getState(otherStore),
       dispatch: createDispatcher(manager, { changesMap, commit }),
-    });
+    };
+
+    const result = action.fn(dispatchContext as DispatchContext<State>, ...args);
 
     const handleResult = (newState: State | void) => {
       if (newState !== undefined) {
@@ -121,7 +147,7 @@ function createDispatcher(manager: StoreManager, root?: DispatcherRoot): Dispatc
         if (!autoCommit) {
           type += ' (deferred)';
         }
-        manager.devTool.log({ type, args: action.args });
+        manager.devTool.log({ type, args });
       }
     };
 
@@ -135,31 +161,6 @@ function createDispatcher(manager: StoreManager, root?: DispatcherRoot): Dispatc
 
 function isPromise<T>(p: T | Promise<T>): p is Promise<T> {
   return typeof p === 'object' && 'then' in p && typeof p.then === 'function';
-}
-
-export function useDispatcher(): Dispatcher {
-  const manager = useStoreManager();
-  return useMemo(() => createDispatcher(manager), [manager]);
-}
-
-export function useAction<State>(action: Action<State>): () => void;
-export function useAction<State>(action: ActionPromise<State>): () => Promise<void>;
-
-export function useAction<State, Args extends any[]>(action: ActionFunction<State, Args>): (...args: Args) => void;
-
-export function useAction<State, Args extends any[]>(
-  action: ActionPromiseFunction<State, Args>
-): (...args: Args) => Promise<void>;
-
-export function useAction<State, Args extends any[]>(action: Action<State> | ActionFunction<State, Args>) {
-  const dispatch = useDispatcher();
-  return useMemo(() => {
-    if ('store' in action) {
-      return () => dispatch(action);
-    } else {
-      return (...args: Args) => dispatch(action(...args));
-    }
-  }, [dispatch, action]);
 }
 
 function isStateUpdaterFunction<State>(updater: StateUpdater<State>): updater is StateUpdaterFunction<State> {

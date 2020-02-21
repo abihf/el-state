@@ -1,17 +1,16 @@
 import * as React from 'react';
-import { useStore, useAction } from '../src/index';
-
-import { nameStore, setName, resetName } from './nameStore';
+import { useAction, useActionCallback, useStore } from '../src/index';
+import { nameStore, resetName, setName } from './nameStore';
 
 export function NameForm() {
   const name = useStore(nameStore);
-  const set = useAction(setName);
-  const reset = useAction(resetName);
+  const onChange = useActionCallback(setName, (e: React.ChangeEvent<HTMLInputElement>) => [e.target.value]);
+  const onReset = useAction(resetName);
   return (
     <div>
       Name:
-      <input value={name} onChange={e => set(e.currentTarget.value)} />
-      <button onClick={reset}>Reset</button>
+      <input value={name} onChange={onChange} />
+      <button onClick={onReset}>Reset</button>
     </div>
   );
 }
