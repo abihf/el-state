@@ -16,15 +16,7 @@ export type StoreManager = {
   devTool?: DevTool;
 };
 
-// React context
-const Context = React.createContext<StoreManager | undefined>(undefined);
-
-type ProviderProps = {
-  initialStates?: GlobalStates;
-  enableDevTool?: boolean;
-};
-
-function createManager(initialStates?: GlobalStates, enableDevTool?: boolean) {
+export function createStoreManager(initialStates?: GlobalStates, enableDevTool?: boolean) {
   const states = initialStates || new Map<string, unknown>();
   const subscriptions = new Map<string, SubscriptionSet>();
   const manager: StoreManager = {
@@ -68,11 +60,21 @@ function createManager(initialStates?: GlobalStates, enableDevTool?: boolean) {
   return manager;
 }
 
+// React context
+const Context = React.createContext<StoreManager | undefined>(undefined);
+
+export const StoreManagerProvider = Context.Provider;
+
+type ProviderProps = {
+  initialStates?: GlobalStates;
+  enableDevTool?: boolean;
+};
+
 export const StoreProvider: React.FC<ProviderProps> = ({ initialStates, enableDevTool, ...props }) => {
-  const manager = React.useMemo(() => createManager(initialStates, enableDevTool), [initialStates, enableDevTool]);
+  const manager = React.useMemo(() => createStoreManager(initialStates, enableDevTool), [initialStates, enableDevTool]);
   React.useEffect(() => () => manager.devTool?.disconnect());
 
-  return <Context.Provider {...props} value={manager} />;
+  return <StoreManagerProvider {...props} value={manager} />;
 };
 
 export function useStoreManager() {
