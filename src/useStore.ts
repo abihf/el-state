@@ -1,15 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { arrayComparator, strictComparator } from './comparator';
-import { StoreManager, useStoreManager } from './provider';
+import { useCallback, useRef } from 'react';
+import { useStoreManager } from './provider';
 import { Store } from './store';
-
-export type StateComparator<T> = (prev: T, current: T) => boolean;
-
-type Stores<States extends any[]> = { [i in keyof States]: Store<States[i]> };
-
-export function combineStore<States extends any[]>(...stores: Stores<States>): Stores<States> {
-  return stores;
-}
+import { StateComparator, useStoreSubscription } from './useStoreSubscription';
 
 /**
  * Get state of single store.
@@ -39,89 +31,33 @@ export function useStore<State, Return = State>(
   deps?: any[]
 ): Return;
 
-export function useStore<States extends any[]>(stores: Stores<States>): States;
-
-export function useStore<States extends any[], Return = States>(
-  stores: Stores<States>,
-  mapState: (state: States) => Return,
-  comparator?: StateComparator<Return>
-): Return;
-
-export function useStore<Return, States extends any[]>(
-  inputStore: Store<unknown> | Stores<States>,
+export function useStore<Return>(
+  store: Store<unknown>,
   mapState = identityFn as (states: unknown) => Return,
-  comparator = defaultComparator(Array.isArray(inputStore)) as StateComparator<Return>,
+  comparator = strictComparator as StateComparator<Return>,
   deps: any[] = []
 ): Return {
   // get store manager from context
   const manager = useStoreManager();
-
-  // normalize parameters, all the logic bellow assume user input multiple stores
-  const stores = Array.isArray(inputStore) ? inputStore : [inputStore];
-
-  // mapState maybe has different reference, use `deps` argument if it depends on other variable
-  const normalizedMapState = useCallback(
-    (states: unknown[]) => (Array.isArray(inputStore) ? mapState(states) : mapState(states[0])),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [Array.isArray(inputStore), ...deps]
-  );
+  const stores = useRef([store]);
 
   // fetch state from store manager, and transform the result.
   const getCurrentResult = useCallback(() => {
     // easy debugging
-    const states = getOrFillStateArray(manager, stores);
-    const result = normalizedMapState(states);
+    const states = manager.getState(store);
+    const result = mapState(states);
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [manager, normalizedMapState, ...stores]); // array stores maybe recreated but not its values
+  }, [manager, store, ...deps]); // array stores maybe recreated but not its values
 
-  // use ref to store current result and initialize the value.
-  // the type can not be `Return` since it may be undefined
-  // we need to make sure that current.value === undefined only
-  // if it isn't initialized
-  const value = useRef<{ result: Return }>();
-  if (value.current === undefined) {
-    value.current = { result: getCurrentResult() };
-  }
-
-  // tell react to rerender this component
-  // should be called after updating `value.current`
-  const [, forceRerender] = useState({});
-
-  // compare value.current with value from store manager
-  // if it changed, update the value and force rerender
-  const updateResultAndForceRender = useCallback(() => {
-    const result = getCurrentResult();
-    const equal = comparator(value.current!.result, result);
-    if (!equal) {
-      value.current = { result };
-      forceRerender({});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, getCurrentResult, forceRerender]); // comparator must be pure function
-
-  useEffect(() => {
-    // maybe the state was changed while this component is being rendered
-    updateResultAndForceRender();
-
-    // subscribe to all stores change
-    // and return function to unscribe them
-    const unsubscribeFunctions = stores.map(store => manager.subscribe(store, updateResultAndForceRender));
-    return () => unsubscribeFunctions.forEach(fn => fn());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [manager, updateResultAndForceRender, ...stores]); // but not its values
-
-  return value.current.result;
+  // subscribe to store changes
+  return useStoreSubscription({ manager, stores, getCurrentResult, comparator });
 }
 
 function identityFn<T = unknown>(states: T): T {
   return states;
 }
 
-function defaultComparator(isArray: boolean) {
-  return isArray ? arrayComparator : strictComparator;
-}
-
-function getOrFillStateArray<States extends any[]>(manager: StoreManager, stores: Stores<States>) {
-  return stores.map(store => manager.getState(store)) as States;
+function strictComparator<T>(a: T, b: T) {
+  return a === b;
 }

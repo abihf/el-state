@@ -1,5 +1,5 @@
 import { Action, ActionPromise } from './action';
-import { StoreManager, useStoreManager } from './provider';
+import { StoreManager } from './manager';
 import { Store } from './store';
 
 export interface Dispatcher {
@@ -82,11 +82,6 @@ type DeepReadonlyObject<T> = {
   readonly [P in keyof T]: DeepReadonly<T[P]>;
 };
 
-export function useDispatcher(): Dispatcher {
-  const manager = useStoreManager();
-  return manager.dispatcher;
-}
-
 export function createDispatcher(manager: StoreManager): Dispatcher {
   return <State, Args extends any[]>(action: Action<State, Args>, ...args: Args) => {
     const changesMap = new Map<string, unknown>();
@@ -94,6 +89,8 @@ export function createDispatcher(manager: StoreManager): Dispatcher {
       changesMap.size > 0 && manager.commit(changesMap);
       changesMap.clear();
     };
+
+    // create child dispatcher once
     const childDispatcher = (childAction: Action<any, any[]>, ...childArgs: any[]) =>
       dispatch(childAction, childArgs, false);
 

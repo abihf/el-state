@@ -1,14 +1,8 @@
 export { createAction } from './action';
-export { arrayComparator, strictComparator } from './comparator';
-export { useDispatcher } from './dispatcher';
-export {
-  createStoreManager,
-  GlobalStates,
-  StoreManager,
-  StoreManagerProvider,
-  StoreProvider,
-  useStoreManager,
-} from './provider';
+export { createStoreManager, GlobalStates, StoreManager } from './manager';
+export { StoreManagerProvider, StoreProvider, useStoreManager } from './provider';
+export { createSelector } from './selector';
 export { createStore } from './store';
 export { useAction, useActionCallback } from './useAction';
-export { combineStore, useStore } from './useStore';
+export { useDispatcher } from './useDispathcer';
+export { useStore } from './useStore';

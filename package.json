@@ -49,5 +49,8 @@
     "tsdx": "^0.12.3",
     "tslib": "^1.10.0",
     "typescript": "^3.7.5"
+  },
+  "dependencies": {
+    "fast-deep-equal": "^3.1.1"
   }
 }

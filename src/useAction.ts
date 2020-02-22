@@ -1,19 +1,52 @@
-import { Action, ActionPromise } from './action';
-import { useDispatcher } from './dispatcher';
 import { SyntheticEvent, useCallback } from 'react';
+import { Action, ActionPromise } from './action';
+import { useDispatcher } from './useDispathcer';
 
 type ArgMapper<Args extends any[], Event> = (event: Event) => Args;
 
+/**
+ * Use action with static arguments. If you need dynamic argument, use {@link useDispatcher} instead,
+ * or {@link useActionCallback} if you want to use it as component callback paramater
+ *
+ * @param action Action that will be called
+ * @param args Static action argument
+ */
+export function useAction<Args extends any[]>(action: Action<any, Args> | ActionPromise<any, Args>, ...args: Args) {
+  const dispatch = useDispatcher();
+  return useCallback(
+    () => {
+      dispatch(action, ...args);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dispatch, action, ...args] // remapArg maybe recreated, use deps instead
+  );
+}
+
+/**
+ * Use action as callback function.
+ *
+ * @param action Action that will be called
+ * @returns Function that take React synthetic event as argument
+ */
 export function useActionCallback<Event = SyntheticEvent>(
   action: Action<any, []> | ActionPromise<any, []>
 ): (event: Event) => void;
 
+/**
+ * Use action as callback function and convert the event to action argument.
+ *
+ * @param action Action that will be called
+ * @param remapArg Convert event argument in to action argument
+ * @param deps If remap isn't pure function, list it's dependency here.
+ * @returns Function that take React synthetic event as argument
+ */
 export function useActionCallback<Args extends [any, ...any[]], Event = SyntheticEvent>(
   action: Action<any, Args> | ActionPromise<any, Args>,
   remapArg: ArgMapper<Args, Event>,
   deps?: any[]
 ): (event: Event) => void;
 
+// real implementation
 export function useActionCallback<Args extends any[], Event = SyntheticEvent>(
   action: Action<any, Args>,
   remapArg?: ArgMapper<Args, Event>,
@@ -27,16 +60,5 @@ export function useActionCallback<Args extends any[], Event = SyntheticEvent>(
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [dispatch, action, ...deps] // remapArg maybe recreated, use deps instead
-  );
-}
-
-export function useAction<Args extends any[]>(action: Action<any, Args> | ActionPromise<any, Args>, ...args: Args) {
-  const dispatch = useDispatcher();
-  return useCallback(
-    () => {
-      dispatch(action, ...args);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dispatch, action, ...args] // remapArg maybe recreated, use deps instead
   );
 }
