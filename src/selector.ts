@@ -1,4 +1,4 @@
-import * as defaultComparator from 'fast-deep-equal';
+import defaultComparator from 'fast-deep-equal';
 import { useCallback, useRef } from 'react';
 import { useStoreManager } from './provider';
 import { Store } from './store';
