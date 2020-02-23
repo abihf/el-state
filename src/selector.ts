@@ -19,7 +19,7 @@ type SelectFunction<Args extends any[], Return> = (getStore: StoreGetter, ...arg
  *
  * @param select Function that fetch stores and return the result
  * @param comparator Compare old & new value returned by `select()`.
- * @returns React hook that call select() and subscribe to state change event;
+ * @returns React hook that evaluate select() when there is state change event;
  */
 export function createSelector<Args extends any[], Return>(
   select: SelectFunction<Args, Return>,

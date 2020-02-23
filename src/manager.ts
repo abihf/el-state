@@ -5,13 +5,13 @@ import { Store } from './store';
 
 export type GlobalStates = Map<string, unknown>;
 
-export type SubscriptionFn = () => void;
-export type SubscriptionSet = Set<SubscriptionFn>;
+export type SubscriptionCallback = () => void;
+export type SubscriptionSet = Set<SubscriptionCallback>;
 
 export type StoreManager = {
   getState<State>(store: Store<State>): State;
   commit(states: Map<string, unknown>): void;
-  subscribe(store: Store<unknown>, cb: SubscriptionFn): () => void;
+  subscribe(store: Store<unknown>, cb: SubscriptionCallback): () => void;
   dispatcher: Dispatcher;
 
   devTool?: DevTool;
@@ -23,7 +23,7 @@ export function createStoreManager(initialStates?: GlobalStates, enableDevTool?:
     subscribe(store, fn) {
       const name = store.name;
       if (!subscriptions.has(name)) {
-        subscriptions.set(name, new Set<SubscriptionFn>());
+        subscriptions.set(name, new Set());
       }
       const set = subscriptions.get(name)!;
       set.add(fn);

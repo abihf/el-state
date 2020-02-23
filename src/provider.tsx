@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useContext, useEffect, useMemo } from 'react';
 import { createStoreManager, GlobalStates, StoreManager } from './manager';
 
 // React context
@@ -12,16 +12,16 @@ type ProviderProps = {
 };
 
 export const StoreProvider: React.FC<ProviderProps> = ({ initialStates, enableDevTool, ...props }) => {
-  const manager = React.useMemo(() => createStoreManager(initialStates, enableDevTool), [initialStates, enableDevTool]);
-  React.useEffect(() => () => manager.devTool?.disconnect());
+  const manager = useMemo(() => createStoreManager(initialStates, enableDevTool), [initialStates, enableDevTool]);
+  useEffect(() => () => manager.devTool?.disconnect(), [manager]);
 
   return <StoreManagerProvider {...props} value={manager} />;
 };
 
 export function useStoreManager() {
-  const ctx = React.useContext(Context);
+  const ctx = useContext(Context);
   if (!ctx) {
-    throw new Error('Not inside provider');
+    throw new Error('You must wrap the component with <StoreProvider>');
   }
   return ctx;
 }

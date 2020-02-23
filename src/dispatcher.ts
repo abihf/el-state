@@ -3,7 +3,20 @@ import { StoreManager } from './manager';
 import { Store } from './store';
 
 export interface Dispatcher {
+  /**
+   * Invoke synchronous action
+   *
+   * @param action action that will be invoked
+   * @param args action arguments
+   */
   <State, Args extends any[]>(action: Action<State, Args>, ...args: Args): void;
+
+  /**
+   * Invoke asynchronous action
+   *
+   * @param action action that will be invoked
+   * @param args action arguments
+   */
   <State, Args extends any[]>(action: ActionPromise<State, Args>, ...args: Args): Promise<void>;
 }
 
