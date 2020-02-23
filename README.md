@@ -63,6 +63,27 @@ function MyComponent() {
 }
 ```
 
+### Select multiple store
+
+```jsx
+const useSelector = createSelector(getStore => {
+  const { counter } = getStore(counterStore);
+  const { name } = getStore(accountStore);
+
+  return counter > 1 ? name : ""; 
+});
+
+function MyComponent() {
+  // this component will only rerender if the value of useSelector changed
+  // it will not rerender when the counterStore updated from 1 to 2
+  const name = useSelector();
+
+  // use the counter
+  return <div>{name}</div>;
+}
+
+```
+
 ### Call an action
 
 ```jsx
