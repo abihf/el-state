@@ -13,7 +13,7 @@ export function App() {
         <hr />
         <NameForm />
         <hr />
-        <Combined />
+        <Combined extra="Fun" />
         <hr />
         <a href="https://github.com/abihf/el-state" target="_blank" rel="noopener noreferrer">
           GitHub

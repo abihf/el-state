@@ -1,4 +1,4 @@
-import { SubscriptionSet } from './provider';
+import { SubscriptionSet } from './manager';
 
 export type DevTool = {
   log(action: object): void;

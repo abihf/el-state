@@ -1,11 +1,20 @@
 import * as React from 'react';
-import { useStore, combineStore } from '../src/index';
+import { createSelector } from '../src/index';
 
 import { counterStore } from './counterStore';
 import { nameStore } from './nameStore';
 
-const allStore = combineStore(counterStore, nameStore);
-export function Combined() {
-  const combined = useStore(allStore, ([counter, name]) => `Counter ${counter.counter}, Name: ${name}`);
+type Props = {
+  extra: string;
+};
+
+const useSelector = createSelector((getStore, extra: string) => {
+  const counter = getStore(counterStore);
+  const name = getStore(nameStore);
+  return `Counter ${counter.counter}, Name: ${name}. ${extra}`;
+});
+
+export function Combined({ extra }: Props) {
+  const combined = useSelector(extra);
   return <b>{combined}</b>;
 }

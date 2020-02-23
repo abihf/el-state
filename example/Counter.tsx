@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { useStore, useAction, useDispatcher, arrayComparator } from '../src/index';
+import { useStore, useActionCallback, useAction } from '../src/index';
+import equal from 'fast-deep-equal';
 
 import { counterStore, setCounter, resetCounter, increaseCounter, stopCounter, startCounter } from './counterStore';
 
@@ -14,11 +15,13 @@ export function Counter() {
 }
 
 function Display() {
-  const [counter, loading] = useStore(counterStore, state => [state.counter, state.loading], arrayComparator);
-  const set = useAction(setCounter);
+  const [counter, loading] = useStore(counterStore, state => [state.counter, state.loading], equal);
+  const onChange = useActionCallback(setCounter, (e: React.ChangeEvent<HTMLInputElement>) => [
+    parseInt(e.target.value, 10),
+  ]);
   return (
     <div>
-      Counter: <input value={counter} disabled={loading} onChange={e => set(parseInt(e.currentTarget.value, 10))} />
+      Counter: <input value={counter} disabled={loading} onChange={onChange} />
       {loading ? ' Loading' : null}
     </div>
   );
@@ -26,8 +29,8 @@ function Display() {
 
 function Control() {
   const isRunning = useStore(counterStore, counter => counter.interval !== null);
-  const increase = useAction(increaseCounter());
-  const reset = useAction(resetCounter());
+  const increase = useAction(increaseCounter);
+  const reset = useAction(resetCounter);
 
   return (
     <div>
@@ -44,11 +47,8 @@ function Control() {
 
 function StartStop() {
   const isRunning = useStore(counterStore, counter => counter.interval !== null);
-  const dispatch = useDispatcher();
+  const onStart = useAction(startCounter);
+  const onStop = useAction(stopCounter);
 
-  return isRunning ? (
-    <button onClick={() => dispatch(stopCounter())}>Stop</button>
-  ) : (
-    <button onClick={() => dispatch(startCounter())}>Start</button>
-  );
+  return isRunning ? <button onClick={onStop}>Stop</button> : <button onClick={onStart}>Start</button>;
 }

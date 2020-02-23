@@ -1,4 +1,4 @@
-import { ActionContext } from './dispatcher';
+import { DispatchContext } from './dispatcher';
 import { Store } from './store';
 
 type ActionReturn<State> = State | void;
@@ -14,37 +14,25 @@ type ActionBase<State> = {
    * @internal
    */
   name?: String;
-
-  /**
-   * arguments when this action called
-   * @internal
-   */
-  args: any[];
 };
 
-export type Action<State> = ActionBase<State> & {
-  call(ctx: ActionContext<State>): ActionReturn<State>;
+export type Action<State, Args extends any[]> = ActionBase<State> & {
+  fn: ActionFunction<State, Args>;
 };
 
-export type ActionPromise<State> = ActionBase<State> & {
-  call(ctx: ActionContext<State>): Promise<ActionReturn<State>>;
+export type ActionPromise<State, Args extends any[]> = ActionBase<State> & {
+  fn: ActionPromiseFunction<State, Args>;
 };
 
-export type ActionCreator<State, Args extends any[]> = (
-  ctx: ActionContext<State>,
+export type ActionFunction<State, Args extends any[]> = (
+  ctx: DispatchContext<State>,
   ...args: Args
 ) => ActionReturn<State>;
-export type ActionPromiseCreator<State, Args extends any[]> = (
-  ctx: ActionContext<State>,
-  ...args: Args
-) => Promise<State>;
-export type ActionPromiseCreatorVoid<State, Args extends any[]> = (
-  ctx: ActionContext<State>,
-  ...args: Args
-) => Promise<void>; // some how typescript can't inver ActionReturn
 
-export type ActionFunction<State, Args extends any[]> = (...args: Args) => Action<State>;
-export type ActionPromiseFunction<State, Args extends any[]> = (...args: Args) => ActionPromise<State>;
+export type ActionPromiseFunction<State, Args extends any[]> = (
+  ctx: DispatchContext<State>,
+  ...args: Args
+) => Promise<State | void>;
 
 /**
  * Create synchronous action.
@@ -55,22 +43,9 @@ export type ActionPromiseFunction<State, Args extends any[]> = (...args: Args) =
  */
 export function createAction<State, Args extends any[]>(
   store: Store<State>,
-  action: ActionCreator<State, Args>,
+  action: ActionFunction<State, Args>,
   name?: string
-): ActionFunction<State, Args>;
-
-/**
- * This is asynchornouse version of `createAction()` that return a promise to new state
- *
- * @param store store that associated to this action
- * @param action function that manipulate the state of the store
- * @param name this is only for debugging purpose.
- */
-export function createAction<State, Args extends any[]>(
-  store: Store<State>,
-  action: ActionPromiseCreator<State, Args>,
-  name?: string
-): ActionPromiseFunction<State, Args>;
+): Action<State, Args>;
 
 /**
  * This is asynchornouse version of `createAction()`
@@ -81,19 +56,15 @@ export function createAction<State, Args extends any[]>(
  */
 export function createAction<State, Args extends any[]>(
   store: Store<State>,
-  action: ActionPromiseCreatorVoid<State, Args>,
+  action: ActionPromiseFunction<State, Args>,
   name?: string
-): ActionPromiseFunction<State, Args>;
+): ActionPromise<State, Args>;
 
+// real implementation
 export function createAction<State, Args extends any[]>(
   store: Store<State>,
-  action: ActionCreator<State, Args>,
+  fn: ActionFunction<State, Args>,
   name?: string
-): ActionFunction<State, Args> {
-  return (...args: Args) => ({
-    store,
-    call: ctx => action(ctx, ...args),
-    name,
-    args,
-  });
+): Action<State, Args> {
+  return { store, fn, name };
 }
