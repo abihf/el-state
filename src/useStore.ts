@@ -1,3 +1,4 @@
+import deepEqual from 'fast-deep-equal';
 import { useCallback, useRef } from 'react';
 import { useStoreManager } from './provider';
 import { Store } from './store';
@@ -34,7 +35,7 @@ export function useStore<State, Return = State>(
 export function useStore<Return>(
   store: Store<unknown>,
   mapState = identityFn as (states: unknown) => Return,
-  comparator = strictComparator as StateComparator<Return>,
+  comparator?: StateComparator<Return>,
   deps: any[] = []
 ): Return {
   // get store manager from context
@@ -51,13 +52,19 @@ export function useStore<Return>(
   }, [manager, store, ...deps]); // array stores maybe recreated but not its values
 
   // subscribe to store changes
-  return useStoreSubscription({ manager, stores, getCurrentResult, comparator });
+  return useStoreSubscription({
+    manager,
+    stores,
+    getCurrentResult,
+    // use deepEqual if mapState isn't undefined
+    comparator: comparator ?? mapState ? deepEqual : strictEqual,
+  });
 }
 
 function identityFn<T = unknown>(states: T): T {
   return states;
 }
 
-function strictComparator<T>(a: T, b: T) {
+function strictEqual<T>(a: T, b: T) {
   return a === b;
 }
