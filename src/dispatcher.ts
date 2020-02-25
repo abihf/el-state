@@ -27,11 +27,6 @@ type DispatchContextBase<State> = {
   state: DeepReadonly<State>;
 
   /**
-   * Get current state of associated store
-   */
-  getState(): DeepReadonly<State>;
-
-  /**
    *
    * @param updater the new state, or function that produce new state
    * @param forceCommit if true, commit all changes after setting this state
@@ -97,10 +92,21 @@ type DeepReadonlyObject<T> = {
 
 export function createDispatcher(manager: StoreManager): Dispatcher {
   return <State, Args extends any[]>(action: Action<State, Args>, ...args: Args) => {
-    const changesMap = new Map<string, unknown>();
+    const changesMap = new WeakMap<Store<unknown>, Array<StateUpdaterFunction<unknown>>>();
+    const changeSet = new Set<Store<unknown>>();
+
     const commit = () => {
-      changesMap.size > 0 && manager.commit(changesMap);
-      changesMap.clear();
+      if (changeSet.size === 0) return;
+
+      const newStates = new Map<string, unknown>();
+      changeSet.forEach(store => {
+        const changes = changesMap.get(store)!;
+        const newState = changes.reduce((prev, updater) => updater(prev), manager.getState(store));
+        newStates.set(store.name, newState);
+        changesMap.delete(store);
+      });
+
+      manager.commit(newStates);
     };
 
     // create child dispatcher once
@@ -115,27 +121,32 @@ export function createDispatcher(manager: StoreManager): Dispatcher {
       isRoot: boolean
     ): any {
       let autoCommit = isRoot;
-      const storeName = childAction.store.name;
 
-      const getState = () => (changesMap.get(storeName) || manager.getState(childAction.store)) as DeepReadonly<State>;
       const setState = (updater: StateUpdater<State>, forceCommit: boolean = false) => {
-        const state = isStateUpdaterFunction(updater) ? updater(getState()) : updater;
-        changesMap.set(storeName, state);
+        const fn = isStateUpdaterFunction<unknown>(updater) ? updater : () => updater;
+        const store = childAction.store;
+        changeSet.add(store);
+        if (changesMap.has(store)) {
+          changesMap.get(store)?.push(fn);
+        } else {
+          changesMap.set(store, [fn]);
+        }
+
         if (forceCommit) {
           commit();
         }
       };
 
+      const state = manager.getState(childAction.store) as DeepReadonly<State>;
+
       const ctx: MergeableDispatchContext<State> = {
-        state: getState(),
-        getState,
+        state,
         setState,
         mergeState(partialState, forceCommit) {
-          const state = getState() as State;
           if (typeof state !== 'object' || Array.isArray(state)) {
             throw new Error('Merge state only available for object based state');
           }
-          setState(Object.assign(Object.create(null), state, partialState), forceCommit);
+          setState(oldState => Object.assign(Object.create(null), oldState, partialState), forceCommit);
         },
 
         commit,
@@ -143,7 +154,7 @@ export function createDispatcher(manager: StoreManager): Dispatcher {
           autoCommit = false;
         },
 
-        getStore: otherStore => (changesMap.get(otherStore.name) as any) || manager.getState(otherStore),
+        getStore: manager.getState,
         dispatch: childDispatcher,
       };
 
