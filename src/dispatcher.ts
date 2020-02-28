@@ -20,7 +20,7 @@ export interface Dispatcher {
   <State, Args extends any[]>(action: ActionPromise<State, Args>, ...args: Args): Promise<void>;
 }
 
-type DispatchContextBase<State> = {
+export type DispatchContext<State> = {
   /**
    * State when the action is called. For complex action, please use {@link ActionContext.getState | getState}
    */
@@ -56,9 +56,7 @@ type DispatchContextBase<State> = {
    * dispatch other action
    */
   dispatch: Dispatcher;
-};
 
-type MergeableDispatchContext<State> = DispatchContextBase<State> & {
   /**
    * Shallow merge current state with `partialState`.
    * Only valid for object based State
@@ -66,12 +64,11 @@ type MergeableDispatchContext<State> = DispatchContextBase<State> & {
    * @param partialState object that will be merged to current state
    * @param forceCommit if true, commit all changes after merging
    */
-  mergeState(partialState: State extends object ? Partial<State> : never, forceCommit?: boolean): void;
+  mergeState(partialState: IfObject<State, Partial<State>>, forceCommit?: boolean): void;
 };
 
-export type DispatchContext<State> = State extends object
-  ? MergeableDispatchContext<State>
-  : DispatchContextBase<State>;
+// if `O` is object than `Type`, else `never`
+type IfObject<O, Type> = O extends any[] ? never : O extends object ? Type : never;
 
 type StateUpdater<State> = State | StateUpdaterFunction<State>;
 type StateUpdaterFunction<State> = (prev: DeepReadonly<State>) => State;
@@ -105,6 +102,7 @@ export function createDispatcher(manager: StoreManager): Dispatcher {
         newStates.set(store.name, newState);
         changesMap.delete(store);
       });
+      changeSet.clear();
 
       manager.commit(newStates);
     };
@@ -120,14 +118,15 @@ export function createDispatcher(manager: StoreManager): Dispatcher {
       childArgs: Args,
       isRoot: boolean
     ): any {
-      let autoCommit = isRoot;
+      // let autoCommit = isRoot;
+      let noAutoCommit = false;
 
       const setState = (updater: StateUpdater<State>, forceCommit: boolean = false) => {
         const fn = isStateUpdaterFunction<unknown>(updater) ? updater : () => updater;
         const store = childAction.store;
         changeSet.add(store);
         if (changesMap.has(store)) {
-          changesMap.get(store)?.push(fn);
+          changesMap.get(store)!.push(fn);
         } else {
           changesMap.set(store, [fn]);
         }
@@ -139,7 +138,7 @@ export function createDispatcher(manager: StoreManager): Dispatcher {
 
       const state = manager.getState(childAction.store) as DeepReadonly<State>;
 
-      const ctx: MergeableDispatchContext<State> = {
+      const ctx: DispatchContext<State> = {
         state,
         setState,
         mergeState(partialState, forceCommit) {
@@ -151,7 +150,7 @@ export function createDispatcher(manager: StoreManager): Dispatcher {
 
         commit,
         disableAutoCommit() {
-          autoCommit = false;
+          noAutoCommit = true;
         },
 
         getStore: manager.getState,
@@ -164,12 +163,15 @@ export function createDispatcher(manager: StoreManager): Dispatcher {
         if (newState !== undefined) {
           setState(newState);
         }
-        if (autoCommit || rootDone) {
+        const autoCommit = !noAutoCommit && (isRoot || rootDone);
+        if (autoCommit) {
           commit();
         }
         if (process.env.NODE_ENV !== 'production' && manager.devTool) {
           let type = `${childAction.store.name}.${childAction.name || '<unknown>'}`;
-          if (!autoCommit) {
+          if (!isRoot) {
+            type += ' (child)';
+          } else if (!autoCommit) {
             type += ' (deferred)';
           }
           manager.devTool.log({ type, args: childArgs });
