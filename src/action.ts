@@ -1,7 +1,7 @@
 import { DispatchContext } from './dispatcher';
 import { Store } from './store';
 
-type ActionReturn<State> = State | void;
+type ActionReturn<State> = State | void | Promise<void>;
 
 type ActionBase<State> = {
   /**
@@ -20,19 +20,10 @@ export type Action<State, Args extends any[]> = ActionBase<State> & {
   fn: ActionFunction<State, Args>;
 };
 
-export type ActionPromise<State, Args extends any[]> = ActionBase<State> & {
-  fn: ActionPromiseFunction<State, Args>;
-};
-
 export type ActionFunction<State, Args extends any[]> = (
   ctx: DispatchContext<State>,
   ...args: Args
 ) => ActionReturn<State>;
-
-export type ActionPromiseFunction<State, Args extends any[]> = (
-  ctx: DispatchContext<State>,
-  ...args: Args
-) => Promise<State | void>;
 
 /**
  * Create synchronous action.
@@ -43,28 +34,13 @@ export type ActionPromiseFunction<State, Args extends any[]> = (
  */
 export function createAction<State, Args extends any[]>(
   store: Store<State>,
-  action: ActionFunction<State, Args>,
-  name?: string
-): Action<State, Args>;
-
-/**
- * This is asynchornouse version of `createAction()`
- *
- * @param store store that associated to this action
- * @param action function that manipulate the state of the store
- * @param name this is only for debugging purpose.
- */
-export function createAction<State, Args extends any[]>(
-  store: Store<State>,
-  action: ActionPromiseFunction<State, Args>,
-  name?: string
-): ActionPromise<State, Args>;
-
-// real implementation
-export function createAction<State, Args extends any[]>(
-  store: Store<State>,
   fn: ActionFunction<State, Args>,
   name?: string
 ): Action<State, Args> {
   return { store, fn, name };
+}
+
+export function getFullActionName<Args extends any[]>(action: Action<any, Args>): string {
+  const name = action.name || action.fn.name || '<unknown>';
+  return `${action.store.name}.${name}`;
 }

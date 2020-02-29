@@ -26,16 +26,14 @@ export const setCounter = createAction(
   'set'
 );
 
-export const resetCounter = createAction(
-  counterStore,
-  async ({ dispatch, mergeState }) => {
-    mergeState({ loading: true }, true);
-    const resetValue = await getResetValue();
+export const resetCounter = createAction(counterStore, async function reset({ dispatch, mergeState, bulkUpdate }) {
+  mergeState({ loading: true });
+  const resetValue = await getResetValue();
+  bulkUpdate(() => {
     dispatch(setCounter, resetValue);
     mergeState({ loading: false });
-  },
-  'reset'
-);
+  });
+});
 
 export const increaseCounter = createAction(
   counterStore,

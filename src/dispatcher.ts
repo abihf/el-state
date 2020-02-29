@@ -1,4 +1,4 @@
-import { Action, ActionPromise } from './action';
+import { Action, getFullActionName } from './action';
 import { StoreManager } from './manager';
 import { Store } from './store';
 
@@ -10,17 +10,9 @@ export interface Dispatcher {
    * @param args action arguments
    */
   <State, Args extends any[]>(action: Action<State, Args>, ...args: Args): void;
-
-  /**
-   * Invoke asynchronous action
-   *
-   * @param action action that will be invoked
-   * @param args action arguments
-   */
-  <State, Args extends any[]>(action: ActionPromise<State, Args>, ...args: Args): Promise<void>;
 }
 
-type DispatchContextBase<State> = {
+export type DispatchContext<State> = {
   /**
    * State when the action is called. For complex action, please use {@link ActionContext.getState | getState}
    */
@@ -39,44 +31,31 @@ type DispatchContextBase<State> = {
   setState(updater: StateUpdater<State>, forceCommit?: boolean): void;
 
   /**
-   * by default, action that called from {@link useAction} and {@link useDispatcher}
-   * will be automatically commited after the action done
-   */
-  disableAutoCommit(): void;
-
-  /**
-   * manually flush all pending changes to global stores, and trigger rerender
-   * of changed components
-   */
-  commit(): void;
-
-  /**
-   * get current state of the other store
-   *
-   * @param store other store
-   */
-  getStore<OtherState>(store: Store<OtherState>): OtherState;
-
-  /**
-   * dispatch other action
-   */
-  dispatch: Dispatcher;
-};
-
-type MergeableDispatchContext<State> = DispatchContextBase<State> & {
-  /**
    * Shallow merge current state with `partialState`.
    * Only valid for object based State
    *
    * @param partialState object that will be merged to current state
    * @param forceCommit if true, commit all changes after merging
    */
-  mergeState(partialState: State extends object ? Partial<State> : never, forceCommit?: boolean): void;
+  mergeState(partialState: IfObject<State, Partial<State>>, forceCommit?: boolean): void;
+
+  /**
+   * get current state of the other store
+   *
+   * @param store other store
+   */
+  getStore<OtherState>(store: Store<OtherState>): DeepReadonly<OtherState>;
+
+  /**
+   * dispatch other action
+   */
+  dispatch: Dispatcher;
+
+  bulkUpdate(fn: () => void): void;
 };
 
-export type DispatchContext<State> = State extends object
-  ? MergeableDispatchContext<State>
-  : DispatchContextBase<State>;
+// if `O` is object return `Then`. if not return `Else`
+type IfObject<O, Then, Else = never> = O extends any[] ? Else : O extends object ? Then : Else;
 
 type StateUpdater<State> = State | StateUpdaterFunction<State>;
 type StateUpdaterFunction<State> = (prev: DeepReadonly<State>) => State;
@@ -96,93 +75,129 @@ type DeepReadonlyObject<T> = {
 };
 
 export function createDispatcher(manager: StoreManager): Dispatcher {
-  return <State, Args extends any[]>(action: Action<State, Args>, ...args: Args) => {
-    const changesMap = new Map<string, unknown>();
-    const commit = () => {
-      changesMap.size > 0 && manager.commit(changesMap);
-      changesMap.clear();
-    };
+  let currentChangesMap: Map<string, unknown> | undefined;
+  let isInsideBulkUpdate = false;
 
-    // create child dispatcher once
-    const childDispatcher = (childAction: Action<any, any[]>, ...childArgs: any[]) =>
-      dispatch(childAction, childArgs, false);
+  function prepareBulkUpdate() {
+    const isRoot = !isInsideBulkUpdate;
 
-    let rootDone = false;
+    const changesMap = isRoot ? new Map<string, unknown>() : currentChangesMap!;
+    if (isRoot) {
+      isInsideBulkUpdate = true;
+      currentChangesMap = changesMap;
+    }
 
-    function dispatch<State, Args extends any[]>(
-      childAction: Action<State, Args> | ActionPromise<State, Args>,
-      childArgs: Args,
-      isRoot: boolean
-    ): any {
-      let autoCommit = isRoot;
-      const storeName = childAction.store.name;
-
-      const getState = () => (changesMap.get(storeName) || manager.getState(childAction.store)) as DeepReadonly<State>;
-      const setState = (updater: StateUpdater<State>, forceCommit: boolean = false) => {
-        const state = isStateUpdaterFunction(updater) ? updater(getState()) : updater;
-        changesMap.set(storeName, state);
-        if (forceCommit) {
-          commit();
-        }
-      };
-
-      const ctx: MergeableDispatchContext<State> = {
-        state: getState(),
-        getState,
-        setState,
-        mergeState(partialState, forceCommit) {
-          const state = getState() as State;
-          if (typeof state !== 'object' || Array.isArray(state)) {
-            throw new Error('Merge state only available for object based state');
-          }
-          setState(Object.assign(Object.create(null), state, partialState), forceCommit);
-        },
-
-        commit,
-        disableAutoCommit() {
-          autoCommit = false;
-        },
-
-        getStore: otherStore => (changesMap.get(otherStore.name) as any) || manager.getState(otherStore),
-        dispatch: childDispatcher,
-      };
-
-      const result = childAction.fn(ctx as DispatchContext<State>, ...childArgs);
-
-      const handleResult = (newState: State | void) => {
-        if (newState !== undefined) {
-          setState(newState);
-        }
-        if (autoCommit || rootDone) {
-          commit();
-        }
-        if (process.env.NODE_ENV !== 'production' && manager.devTool) {
-          let type = `${childAction.store.name}.${childAction.name || '<unknown>'}`;
-          if (!autoCommit) {
-            type += ' (deferred)';
-          }
-          manager.devTool.log({ type, args: childArgs });
-        }
-        if (isRoot) {
-          rootDone = true;
-        }
-      };
-
-      if (isPromise(result)) {
-        return result.then(handleResult);
-      } else {
-        return handleResult(result);
+    function commit() {
+      if (changesMap.size > 0) {
+        manager.commit(changesMap);
+        changesMap.clear();
       }
     }
 
-    return dispatch(action, args, true);
-  };
+    function done() {
+      if (isRoot) {
+        isInsideBulkUpdate = false;
+        currentChangesMap = undefined;
+      }
+    }
+
+    return { isRoot, changesMap, commit, done };
+  }
+
+  function bulkUpdate(fn: () => void) {
+    const { isRoot, commit, done } = prepareBulkUpdate();
+    fn();
+
+    if (isRoot) {
+      commit();
+      if (process.env.NODE_ENV !== 'production' && manager.devTool) {
+        manager.devTool.log({ type: '@bulkUpdate' });
+      }
+    }
+
+    done();
+  }
+
+  function getStore<State>(store: Store<State>): DeepReadonly<State> {
+    return ((isInsideBulkUpdate && currentChangesMap && currentChangesMap.get(store.name)) ||
+      manager.getState(store)) as DeepReadonly<State>;
+  }
+
+  function dispatch<State, Args extends any[]>(action: Action<State, Args>, ...args: Args) {
+    const { isRoot, commit, done } = prepareBulkUpdate();
+
+    let isInDispatch = true;
+    const storeName = action.store.name;
+
+    const getState = () => getStore(action.store);
+    const setState = (updater: StateUpdater<State>, forceCommit: boolean = false) => {
+      if (process.env.NODE_ENV !== 'production' && !isInsideBulkUpdate && !isStateUpdaterFunction(updater)) {
+        console.warn(
+          new Error(
+            'You call setState() with plain state outside action, it can make state inconsistent. ' +
+              'This error might happen when you use async action. Consider using setState() with callback function.'
+          )
+        );
+      }
+
+      const bulk = prepareBulkUpdate();
+      const state = isStateUpdaterFunction(updater) ? updater(getStore(action.store)) : updater;
+
+      bulk.changesMap.set(storeName, state);
+      if (forceCommit || bulk.isRoot) {
+        bulk.commit();
+      }
+
+      if (process.env.NODE_ENV !== 'production' && manager.devTool && !isInDispatch) {
+        const type = `${getFullActionName(action)} (setState)`;
+        manager.devTool.log({ type, args });
+      }
+
+      bulk.done();
+    };
+
+    const state = getState();
+    const ctx: DispatchContext<State> = {
+      state,
+      getState,
+      setState,
+      mergeState(partialState, forceCommit) {
+        if (typeof state !== 'object' || Array.isArray(state)) {
+          throw new Error('Merge state only available for object based state');
+        }
+        setState(oldState => Object.assign(Object.create(null), oldState, partialState), forceCommit);
+      },
+
+      getStore,
+      dispatch,
+      bulkUpdate,
+    };
+
+    const newState = action.fn(ctx, ...args);
+
+    if (!isPromise(newState) && newState !== undefined) {
+      setState(newState);
+    }
+    if (isRoot) commit();
+
+    if (process.env.NODE_ENV !== 'production' && manager.devTool) {
+      let type = getFullActionName(action);
+      if (!isRoot) {
+        type += ' (child)';
+      }
+      manager.devTool.log({ type, args });
+    }
+
+    isInDispatch = false;
+    done();
+  }
+
+  return dispatch;
 }
 
 function isPromise<T>(p: T | Promise<T>): p is Promise<T> {
   return typeof p === 'object' && 'then' in p && typeof p.then === 'function';
 }
-
 function isStateUpdaterFunction<State>(updater: StateUpdater<State>): updater is StateUpdaterFunction<State> {
   return typeof updater === 'function';
 }

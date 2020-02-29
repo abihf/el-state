@@ -5,7 +5,7 @@ export const nameStore = createStore('name', () => '');
 
 export const setName = createAction(
   nameStore,
-  async (ctx, name: string) => {
+  (ctx, name: string) => {
     if (name === 'xyz') {
       ctx.dispatch(setCounter, 100);
     }
