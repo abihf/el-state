@@ -16,7 +16,6 @@ export function Counter() {
 
 function Display() {
   const [counter, loading] = useStore(counterStore, state => [state.counter, state.loading], equal);
-  console.trace('Counter', counter, loading);
   const onChange = useActionCallback(setCounter, (e: React.ChangeEvent<HTMLInputElement>) => [
     parseInt(e.target.value, 10),
   ]);
