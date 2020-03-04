@@ -23,6 +23,14 @@ export function useAction<Args extends any[]>(action: Action<any, Args>, ...args
 }
 
 /**
+ * Use action as callback function.
+ *
+ * @param action Action that will be called
+ * @returns Function that take React synthetic event as argument
+ */
+export function useActionCallback<Event = SyntheticEvent>(action: Action<any, []>): (event: Event) => void;
+
+/**
  * Use action as callback function and convert the event to action argument.
  *
  * @param action Action that will be called
