@@ -1,6 +1,6 @@
 import { unstable_batchedUpdates } from 'react-dom';
 import { DevTool, initDevTool } from './devTool';
-import { createDispatcher, Dispatcher } from './dispatcher';
+import { Dispatcher } from './dispatcher';
 import { Store } from './store';
 
 export type GlobalStates = Map<string, unknown>;
@@ -12,8 +12,7 @@ export type StoreManager = {
   getState<State>(store: Store<State>): State;
   commit(states: Map<string, unknown>): void;
   subscribe(store: Store<unknown>, cb: SubscriptionCallback): () => void;
-  dispatcher: Dispatcher;
-
+  dispatcher?: Dispatcher;
   devTool?: DevTool;
 };
 export function createStoreManager(initialStates?: GlobalStates, enableDevTool?: boolean) {
@@ -52,11 +51,9 @@ export function createStoreManager(initialStates?: GlobalStates, enableDevTool?:
         unstable_batchedUpdates(callbacks => callbacks.forEach(cb => cb()), triggered);
       }
     },
-    dispatcher: undefined!, // will be set below
   };
-  manager.dispatcher = createDispatcher(manager);
 
-  if (enableDevTool) {
+  if (process.env.NODE_ENV === 'production' && enableDevTool) {
     manager.devTool = initDevTool(states, subscriptions);
   }
   return manager;

@@ -39,7 +39,7 @@ export function createSelector<Args extends any[], Return>(
       stores.current = selectedStores;
       return result;
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [manager, ...args]); // array stores maybe recreated but not its values
+    }, [manager, ...args]);
 
     // subscribe to store changes
     return useStoreSubscription({ manager, stores, getCurrentResult, comparator });

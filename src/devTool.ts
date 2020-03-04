@@ -9,10 +9,6 @@ export function initDevTool(
   states: Map<string, unknown>,
   subscriptions: Map<string, SubscriptionSet>
 ): DevTool | undefined {
-  if (process.env.NODE_ENV === 'production') {
-    return undefined;
-  }
-
   const ext: ReduxDevToolExtension =
     typeof window !== undefined ? (window as any).__REDUX_DEVTOOLS_EXTENSION__ : undefined;
   if (!ext) return undefined;

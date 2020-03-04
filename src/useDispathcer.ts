@@ -1,7 +1,12 @@
 import { useStoreManager } from './provider';
-import { Dispatcher } from './dispatcher';
+import { Dispatcher, createDispatcher } from './dispatcher';
 
 export function useDispatcher(): Dispatcher {
   const manager = useStoreManager();
-  return manager.dispatcher;
+  let dispatcher = manager.dispatcher;
+  if (!dispatcher) {
+    dispatcher = createDispatcher(manager);
+    manager.dispatcher = dispatcher;
+  }
+  return dispatcher;
 }

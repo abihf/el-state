@@ -38,8 +38,9 @@ export function useStoreSubscription<Return>({
       value.current = { result };
       forceRerender({});
     }
+    // comparator must be pure function, exclude that from deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, getCurrentResult, forceRerender]); // comparator must be pure function
+  }, [value, getCurrentResult, forceRerender]);
 
   useEffect(() => {
     // maybe the state was changed while this component is being rendered
@@ -49,8 +50,9 @@ export function useStoreSubscription<Return>({
     // and return function to unscribe them
     const unsubscribeFunctions = stores.current.map(store => manager.subscribe(store, updateResultAndForceRender));
     return () => unsubscribeFunctions.forEach(fn => fn());
+    // list of store maybe recreated, but not its items
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [manager, updateResultAndForceRender, ...stores.current]); // but not its values
+  }, [manager, updateResultAndForceRender, ...stores.current]);
 
   return value.current.result;
 }

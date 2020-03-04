@@ -7,9 +7,4 @@ describe('createStore', () => {
     expect(store).toMatchObject({ name: 'test-0' });
     expect(store.initState()).toEqual(0);
   });
-
-  it('warns about duplicate store name', () => {
-    createStore('duplicate', 0);
-    expect(() => createStore('duplicate', 1)).toThrowError(/already been declared/);
-  });
 });
