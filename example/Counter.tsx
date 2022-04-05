@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { useStore, useActionCallback, useAction } from '../src/index';
-import equal from 'fast-deep-equal';
+import { useStore, useActionCallback, useAction } from '../src/';
 
 import { counterStore, setCounter, resetCounter, increaseCounter, stopCounter, startCounter } from './counterStore';
 
@@ -15,7 +14,7 @@ export function Counter() {
 }
 
 function Display() {
-  const [counter, loading] = useStore(counterStore, state => [state.counter, state.loading], equal);
+  const [counter, loading] = useStore(counterStore, state => [state.counter, state.loading]);
   const onChange = useActionCallback(setCounter, (e: React.ChangeEvent<HTMLInputElement>) => [
     parseInt(e.target.value, 10),
   ]);

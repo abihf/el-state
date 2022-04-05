@@ -6,13 +6,34 @@ const Context = React.createContext<StoreManager | undefined>(undefined);
 
 export const StoreManagerProvider = Context.Provider;
 
-type ProviderProps = {
+interface ProviderProps {
+  /**
+   * Initial global state. Used for client side hidration
+   */
   initialStates?: GlobalStates;
-  enableDevTool?: boolean;
-};
 
-export const StoreProvider: React.FC<ProviderProps> = ({ initialStates, enableDevTool, ...props }) => {
-  const manager = useMemo(() => createStoreManager(initialStates, enableDevTool), [initialStates, enableDevTool]);
+  /**
+   * Use custom {@Link StoreManager | StoreManager}
+   */
+  manager?: StoreManager;
+
+  /**
+   * Enable Redux dev tool integration
+   */
+  enableDevTool?: boolean;
+}
+
+export const StoreProvider: React.FC<ProviderProps> = ({
+  initialStates,
+  enableDevTool,
+  manager: customManager,
+  ...props
+}) => {
+  const manager = useMemo(() => customManager || createStoreManager(initialStates, enableDevTool), [
+    customManager,
+    initialStates,
+    enableDevTool,
+  ]);
   useEffect(() => () => manager.devTool?.disconnect(), [manager]);
 
   return <StoreManagerProvider {...props} value={manager} />;

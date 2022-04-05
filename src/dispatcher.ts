@@ -4,7 +4,7 @@ import { Store } from './store';
 
 export interface Dispatcher {
   /**
-   * Invoke synchronous action
+   * Invoke action
    *
    * @param action action that will be invoked
    * @param args action arguments
@@ -12,9 +12,9 @@ export interface Dispatcher {
   <State, Args extends any[]>(action: Action<State, Args>, ...args: Args): void;
 }
 
-export type DispatchContext<State> = {
+export interface DispatchContext<State> {
   /**
-   * State when the action is called. For complex action, please use {@link ActionContext.getState | getState}
+   * State when the action is called. For complex action, please use {@link DispatchContext.getState | getState()}
    */
   state: DeepReadonly<State>;
 
@@ -51,28 +51,40 @@ export type DispatchContext<State> = {
    */
   dispatch: Dispatcher;
 
+  /**
+   * This is helpful to batch react update when you call multiple setState on async context
+   *
+   * @param fn Function that call multiple {@link DispatchContext.setState | setState()} multiple times.
+   */
   bulkUpdate(fn: () => void): void;
-};
+}
 
 // if `O` is object return `Then`. if not return `Else`
 type IfObject<O, Then, Else = never> = O extends any[] ? Else : O extends object ? Then : Else;
 
-type StateUpdater<State> = State | StateUpdaterFunction<State>;
-type StateUpdaterFunction<State> = (prev: DeepReadonly<State>) => State;
+type StateUpdater<State> = State | DeepReadonly<State> | StateUpdaterFunction<State>;
+type StateUpdaterFunction<State> = (prev: DeepReadonly<State>) => State | DeepReadonly<State>;
 
-type DeepReadonly<T> = T extends (infer R)[]
-  ? DeepReadonlyArray<R>
-  : T extends Function
+type Builtin = string | number | boolean | bigint | symbol | undefined | null | Function | Date | Error | RegExp;
+export type DeepReadonly<T> = T extends Builtin
   ? T
-  : T extends object
-  ? DeepReadonlyObject<T>
-  : T;
-
-interface DeepReadonlyArray<T> extends ReadonlyArray<DeepReadonly<T>> {}
-
-type DeepReadonlyObject<T> = {
-  readonly [P in keyof T]: DeepReadonly<T[P]>;
-};
+  : T extends Map<infer K, infer V>
+  ? ReadonlyMap<DeepReadonly<K>, DeepReadonly<V>>
+  : T extends ReadonlyMap<infer K, infer V>
+  ? ReadonlyMap<DeepReadonly<K>, DeepReadonly<V>>
+  : T extends WeakMap<infer K, infer V>
+  ? WeakMap<DeepReadonly<K>, DeepReadonly<V>>
+  : T extends Set<infer U>
+  ? ReadonlySet<DeepReadonly<U>>
+  : T extends ReadonlySet<infer U>
+  ? ReadonlySet<DeepReadonly<U>>
+  : T extends WeakSet<infer U>
+  ? WeakSet<DeepReadonly<U>>
+  : T extends Promise<infer U>
+  ? Promise<DeepReadonly<U>>
+  : T extends {}
+  ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
+  : Readonly<T>;
 
 export function createDispatcher(manager: StoreManager): Dispatcher {
   let currentChangesMap: Map<string, unknown> | undefined;

@@ -1,4 +1,4 @@
-import { createStore, createAction } from '../src/index';
+import { createStore, createAction } from '../src/';
 
 // util
 const sleep = (duration: number) => new Promise(resolve => setTimeout(resolve, duration));
@@ -20,10 +20,8 @@ export const counterStore = createStore<CounterState>('counter', {
   loading: false,
 });
 
-export const setCounter = createAction(
-  counterStore,
-  ({ mergeState }, counter: number) => mergeState({ counter }),
-  'set'
+export const setCounter = createAction(counterStore, 'set', ({ mergeState }, counter: number) =>
+  mergeState({ counter })
 );
 
 export const resetCounter = createAction(counterStore, async function reset({ dispatch, mergeState, bulkUpdate }) {
@@ -35,29 +33,20 @@ export const resetCounter = createAction(counterStore, async function reset({ di
   });
 });
 
-export const increaseCounter = createAction(
-  counterStore,
-  ({ state }) => ({ ...state, counter: state.counter + 1 }),
-  'increase'
-);
+export const increaseCounter = createAction(counterStore, 'increase', ({ state }) => ({
+  ...state,
+  counter: state.counter + 1,
+}));
 
-export const startCounter = createAction(
-  counterStore,
-  ({ mergeState, dispatch }) => {
-    dispatch(stopCounter);
-    const interval = setInterval(() => {
-      dispatch(increaseCounter);
-    }, 1000);
-    mergeState({ interval });
-  },
-  'start'
-);
+export const startCounter = createAction(counterStore, 'start', ({ mergeState, dispatch }) => {
+  dispatch(stopCounter);
+  const interval = setInterval(() => {
+    dispatch(increaseCounter);
+  }, 1000);
+  mergeState({ interval });
+});
 
-export const stopCounter = createAction(
-  counterStore,
-  ({ state }) => {
-    if (state.interval) clearInterval(state.interval);
-    return { ...state, interval: null };
-  },
-  'stop'
-);
+export const stopCounter = createAction(counterStore, 'stop', ({ state }) => {
+  if (state.interval) clearInterval(state.interval);
+  return { ...state, interval: null };
+});

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { createSelector } from '../src/index';
+import { createSelector } from '../src/';
 
 import { counterStore } from './counterStore';
 import { nameStore } from './nameStore';

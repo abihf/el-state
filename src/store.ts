@@ -1,10 +1,17 @@
 export type StateInitiator<T> = T | StateInitiatorFunction<T>;
 export type StateInitiatorFunction<T> = () => T;
 
-export type Store<State> = {
+export interface Store<State> {
+  /**
+   * name of the store
+   */
   readonly name: string;
+
+  /**
+   * state initiator
+   */
   readonly initState: StateInitiatorFunction<State>;
-};
+}
 
 let storeImplementation: Map<string, string>;
 

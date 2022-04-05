@@ -8,14 +8,26 @@ export type GlobalStates = Map<string, unknown>;
 export type SubscriptionCallback = () => void;
 export type SubscriptionSet = Set<SubscriptionCallback>;
 
-export type StoreManager = {
+export interface StoreManager {
+  /**
+   * Get current state of a store
+   * @param store input store
+   */
   getState<State>(store: Store<State>): State;
+
+  /** @internal */
   commit(states: Map<string, unknown>): void;
+
+  /** @internal */
   subscribe(store: Store<unknown>, cb: SubscriptionCallback): () => void;
+
+  /** @internal */
   dispatcher: Dispatcher;
 
+  /** @internal */
   devTool?: DevTool;
-};
+}
+
 export function createStoreManager(initialStates?: GlobalStates, enableDevTool?: boolean) {
   const states = initialStates || new Map<string, unknown>();
   const subscriptions = new Map<string, SubscriptionSet>();

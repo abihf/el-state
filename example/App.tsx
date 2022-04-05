@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { StoreProvider } from '../src/index';
+import { StoreProvider } from '../src/';
 
 import { Counter } from './Counter';
 import { NameForm } from './NameForm';

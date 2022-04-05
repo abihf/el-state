@@ -1,9 +1,9 @@
 import { SubscriptionSet } from './manager';
 
-export type DevTool = {
+export interface DevTool {
   log(action: object): void;
   disconnect(): void;
-};
+}
 
 export function initDevTool(
   states: Map<string, unknown>,
@@ -62,15 +62,15 @@ function mapToObject(map: Map<string, unknown>) {
   return obj;
 }
 
-type ReduxDevToolExtension = {
+interface ReduxDevToolExtension {
   connect(options: object): ReduxDevToolConnection;
   disconnect(connection: ReduxDevToolConnection): void;
-};
+}
 
-type ReduxDevToolConnection = {
+interface ReduxDevToolConnection {
   init(state: object): void;
   subscribe(cb: ReduxDevtoolSubscription): void;
   send(action: object, state?: object): void;
-};
+}
 
 type ReduxDevtoolSubscription = (data: { type: string; state: string; payload: { type: string } }) => void;

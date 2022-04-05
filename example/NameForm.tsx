@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useAction, useActionCallback, useStore } from '../src/index';
+import { useAction, useActionCallback, useStore } from '../src/';
 import { nameStore, resetName, setName } from './nameStore';
 
 export function NameForm() {

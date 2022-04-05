@@ -33,7 +33,7 @@ ReactDOM.render(
 ### Define a store & actions
 
 ```ts
-import { createStore, createState } from 'el-state';
+import { createStore } from 'el-state';
 
 type CounterState = {
   counter: number;
@@ -70,7 +70,7 @@ const useSelector = createSelector(getStore => {
   const { counter } = getStore(counterStore);
   const { name } = getStore(accountStore);
 
-  return counter > 1 ? name : ""; 
+  return counter > 1 ? name : '';
 });
 
 function MyComponent() {
@@ -81,7 +81,6 @@ function MyComponent() {
   // use the counter
   return <div>{name}</div>;
 }
-
 ```
 
 ### Call an action
