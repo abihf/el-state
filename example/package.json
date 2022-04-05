@@ -8,7 +8,7 @@
     "build": "parcel build index.html"
   },
   "dependencies": {
-    "immer": "^7.0.9",
+    "immer": "^9.0.6",
     "react-app-polyfill": "^1.0.0"
   },
   "alias": {
