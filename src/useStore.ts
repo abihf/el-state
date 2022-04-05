@@ -1,8 +1,7 @@
 import deepEqual from 'fast-deep-equal';
-import { useCallback, useRef } from 'react';
 import { useStoreManager } from './provider';
-import { Store } from './store';
-import { StateComparator, useStoreSubscription } from './useStoreSubscription';
+import { Store, StateComparator } from './store';
+import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/with-selector';
 
 /**
  * Get state of single store.
@@ -20,45 +19,32 @@ export function useStore<State>(store: Store<State>): State;
  *
  * @param store Store whose state will be used
  * @param mapState Transform state into different value
- * @param comparator Compare old & new value returned by mapState.
- * @param deps Dependencies of mapState
+ * @param comparator Compare old & new value returned by mapState
  *
  * @returns transformed state
  */
 export function useStore<State, Return = State>(
   store: Store<State>,
   mapState?: (state: State) => Return,
-  comparator?: StateComparator<Return>,
-  deps?: any[]
+  comparator?: StateComparator<Return>
 ): Return;
 
 export function useStore<Return>(
   store: Store<unknown>,
   mapState = identityFn as (states: unknown) => Return,
-  comparator?: StateComparator<Return>,
-  deps: any[] = []
+  comparator?: StateComparator<Return>
 ): Return {
   // get store manager from context
   const manager = useStoreManager();
-  const stores = useRef([store]);
-
-  // fetch state from store manager, and transform the result.
-  const getCurrentResult = useCallback(() => {
-    // easy debugging
-    const states = manager.getState(store);
-    const result = mapState(states);
-    return result;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [manager, store, ...deps]); // array stores maybe recreated but not its values
 
   // subscribe to store changes
-  return useStoreSubscription({
-    manager,
-    stores,
-    getCurrentResult,
-    // use deepEqual if mapState isn't undefined
-    comparator: comparator ?? mapState ? deepEqual : strictEqual,
-  });
+  return useSyncExternalStoreWithSelector(
+    (notify) => manager.subscribe(store, notify),
+    () => manager.getState(store),
+    undefined,
+    mapState,
+    comparator ?? mapState ? deepEqual : strictEqual
+  );
 }
 
 function identityFn<T = unknown>(states: T): T {

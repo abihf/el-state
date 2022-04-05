@@ -177,7 +177,7 @@ export function createDispatcher(manager: StoreManager): Dispatcher {
         if (typeof state !== 'object' || Array.isArray(state)) {
           throw new Error('Merge state only available for object based state');
         }
-        setState(oldState => Object.assign(Object.create(null), oldState, partialState), forceCommit);
+        setState((oldState) => Object.assign(Object.create(null), oldState, partialState), forceCommit);
       },
 
       getStore,

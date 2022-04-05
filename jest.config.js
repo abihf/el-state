@@ -1,5 +1,5 @@
+/** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
 module.exports = {
-  transform: {
-    '.(ts|tsx)': require.resolve('ts-jest/dist'),
-  },
+  preset: 'ts-jest',
+  testEnvironment: 'node',
 };

@@ -13,6 +13,8 @@ export interface Store<State> {
   readonly initState: StateInitiatorFunction<State>;
 }
 
+export type StateComparator<T> = (prev: T, current: T) => boolean;
+
 let storeImplementation: Map<string, string>;
 
 export function createStore<State>(name: string, initialState: StateInitiator<State>): Store<State> {

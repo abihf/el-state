@@ -53,7 +53,7 @@ export function useActionCallback<Args extends any[], Event = SyntheticEvent>(
   const dispatch = useDispatcher();
   return useCallback(
     function actionCallback(event: Event) {
-      const args = remapArg ? remapArg(event) : (([] as unknown) as Args);
+      const args = remapArg ? remapArg(event) : ([] as unknown as Args);
       if (process.env.NODE_ENV !== 'production') {
         // -1 is for dispatch context
         const neededArgLength = action.fn.length - 1;

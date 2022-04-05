@@ -1,47 +1,42 @@
-import defaultComparator from 'fast-deep-equal';
-import { useCallback, useRef } from 'react';
+import deepEqual from 'fast-deep-equal';
+import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/with-selector';
 import { useStoreManager } from './provider';
-import { Store } from './store';
-import { StateComparator, useStoreSubscription } from './useStoreSubscription';
+import { StateComparator, Store } from './store';
 
-interface StoreGetter {
-  /**
-   * @param store Store whose state will be retrieved.
-   * @returns Current state of the store
-   */
-  <State>(store: Store<State>): State;
-}
-
-type SelectFunction<Args extends any[], Return> = (getStore: StoreGetter, ...args: Args) => Return;
+type Stores<States extends any[]> = {
+  [index in keyof States]: Store<States[index]>;
+};
 
 /**
- * Create react hook to use one or more store's state.
+ * Create multi-store selector
  *
- * @param select Function that fetch stores and return the result
- * @param comparator Compare old & new value returned by `select()`.
- * @returns React hook that evaluate select() when there is state change event;
+ * @param stores list of store that will be used
+ * @returns a function to create react hook
  */
-export function createSelector<Args extends any[], Return>(
-  select: SelectFunction<Args, Return>,
-  comparator = defaultComparator as StateComparator<Return>
-) {
-  return function useSelector(...args: Args): Return {
-    const manager = useStoreManager();
-    const stores = useRef<Store<unknown>[]>([]);
-
-    const getCurrentResult = useCallback(() => {
-      // easy debugging
-      const selectedStores: Array<Store<unknown>> = [];
-      const result = select(store => {
-        selectedStores.push(store);
-        return manager.getState(store);
-      }, ...args);
-      stores.current = selectedStores;
-      return result;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [manager, ...args]); // array stores maybe recreated but not its values
-
-    // subscribe to store changes
-    return useStoreSubscription({ manager, stores, getCurrentResult, comparator });
+export function createSelector<States extends any[]>(...stores: Stores<States>) {
+  /**
+   * Create react hook to use one or more store's state.
+   *
+   * @param select Function that fetch stores and return the result
+   * @param comparator Compare old & new value returned by `select()`.
+   * @returns React hook that evaluate select() when there is state change event;
+   */
+  return <Args extends any[], Return>(
+    select: (states: States, ...args: Args) => Return,
+    comparator: StateComparator<Return> = deepEqual
+  ) => {
+    return function useSelector(...args: Args) {
+      const manager = useStoreManager();
+      return useSyncExternalStoreWithSelector(
+        (notify) => {
+          const unsubscribeFunctions = stores.map((store) => manager.subscribe(store, notify));
+          return () => unsubscribeFunctions.forEach((fn) => fn());
+        },
+        () => stores.map((store) => manager.getState(store)) as States,
+        undefined,
+        (states) => select(states, ...args),
+        comparator
+      );
+    };
   };
 }

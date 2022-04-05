@@ -41,9 +41,9 @@ export function initDevTool(
       const allSubscription: SubscriptionSet = new Set();
       for (const key in obj) {
         states.set(key, obj[key]);
-        subscriptions.get(key)?.forEach(fn => allSubscription.add(fn));
+        subscriptions.get(key)?.forEach((fn) => allSubscription.add(fn));
       }
-      allSubscription.forEach(fn => fn());
+      allSubscription.forEach((fn) => fn());
     }
   });
   return {

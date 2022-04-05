@@ -57,11 +57,11 @@ export function createStoreManager(initialStates?: GlobalStates, enableDevTool?:
         states.set(name, state);
         const callbacks = subscriptions.get(name);
         if (callbacks) {
-          callbacks.forEach(cb => triggered.add(cb));
+          callbacks.forEach((cb) => triggered.add(cb));
         }
       });
       if (triggered.size > 0) {
-        unstable_batchedUpdates(callbacks => callbacks.forEach(cb => cb()), triggered);
+        unstable_batchedUpdates((callbacks) => callbacks.forEach((cb) => cb()), triggered);
       }
     },
     dispatcher: undefined!, // will be set below
