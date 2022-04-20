@@ -27,12 +27,12 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "node",
-    "jsx": "react",
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
     "esModuleInterop": true
   },
   "typedocOptions": {
     "exclude": "**/*+test.(ts|tsx)",
-    "stripInternal": true,
     "out": "docs"
   }
 }

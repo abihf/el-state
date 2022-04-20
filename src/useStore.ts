@@ -25,13 +25,13 @@ export function useStore<State>(store: Store<State>): State;
  */
 export function useStore<State, Return = State>(
   store: Store<State>,
-  mapState?: (state: State) => Return,
+  mapState: (state: State) => Return,
   comparator?: StateComparator<Return>
 ): Return;
 
 export function useStore<Return>(
   store: Store<unknown>,
-  mapState = identityFn as (states: unknown) => Return,
+  mapState?: (state: unknown) => Return,
   comparator?: StateComparator<Return>
 ): Return {
   // get store manager from context
@@ -42,7 +42,7 @@ export function useStore<Return>(
     (notify) => manager.subscribe(store, notify),
     () => manager.getState(store),
     undefined,
-    mapState,
+    (mapState || identityFn) as (state: unknown) => Return,
     comparator ?? mapState ? deepEqual : strictEqual
   );
 }

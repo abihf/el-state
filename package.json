@@ -20,7 +20,7 @@
     "build": "tsdx build",
     "test": "tsdx test --env=jsdom --coverage",
     "lint": "tsdx lint src",
-    "doc": "typedoc --mode library src/index.ts"
+    "doc": "typedoc src/index.ts"
   },
   "peerDependencies": {
     "react": "17 || 18",
@@ -38,10 +38,10 @@
     "trailingComma": "es5"
   },
   "devDependencies": {
-    "@testing-library/react": "^13.0.0",
+    "@testing-library/react": "^13.1.1",
     "@types/jest": "^27.4.1",
-    "@types/react": "^17.0.43",
-    "@types/react-dom": "^17.0.14",
+    "@types/react": "^18.0.5",
+    "@types/react-dom": "^18.0.1",
     "@types/use-sync-external-store": "^0.0.3",
     "husky": "^7.0.4",
     "jest": "^27.5.1",
@@ -52,6 +52,7 @@
     "ts-jest": "^27.1.4",
     "tsdx": "^0.14.1",
     "tslib": "^2.3.1",
+    "typedoc": "^0.22.15",
     "typescript": "^4.6.3"
   },
   "dependencies": {

@@ -14,8 +14,8 @@ import {
 // counter store
 const counterStore = createStore('test.integration.counter', 0);
 const setCounter = createAction(counterStore, (_, value: number) => value);
-const resetCounter = createAction(counterStore, ctx => ctx.dispatch(setCounter, 0));
-const increaseCounter = createAction(counterStore, ctx => ctx.state + 1);
+const resetCounter = createAction(counterStore, (ctx) => ctx.dispatch(setCounter, 0));
+const increaseCounter = createAction(counterStore, (ctx) => ctx.state + 1);
 
 // name store
 const nameStore = createStore('test.integration.name', () => '');
@@ -27,7 +27,7 @@ const setName = createAction(nameStore, (ctx, name: string) => {
 });
 
 const SimpleCounter = () => {
-  const counter = useStore(counterStore, counter => String(counter));
+  const counter = useStore(counterStore, (counter) => String(counter));
   const dispatch = useDispatcher();
   const reset = useAction(resetCounter);
   return (
@@ -46,11 +46,7 @@ const NameInput = () => {
   return <input data-testid="input-name" value={name} onChange={onChange} />;
 };
 
-const useSelector = createSelector(getStore => {
-  const name = getStore(nameStore);
-  const counter = getStore(counterStore);
-  return `${name}-${counter}`;
-});
+const useSelector = createSelector(nameStore, counterStore)(([name, counter]) => `${name}-${counter}`);
 
 const Combined = () => {
   const combined = useSelector();

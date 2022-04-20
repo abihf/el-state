@@ -23,17 +23,16 @@ interface ProviderProps {
   enableDevTool?: boolean;
 }
 
-export const StoreProvider: React.FC<ProviderProps> = ({
+export const StoreProvider: React.FC<React.PropsWithChildren<ProviderProps>> = ({
   initialStates,
   enableDevTool,
   manager: customManager,
   ...props
 }) => {
-  const manager = useMemo(() => customManager || createStoreManager(initialStates, enableDevTool), [
-    customManager,
-    initialStates,
-    enableDevTool,
-  ]);
+  const manager = useMemo(
+    () => customManager || createStoreManager(initialStates, enableDevTool),
+    [customManager, initialStates, enableDevTool]
+  );
   useEffect(() => () => manager.devTool?.disconnect(), [manager]);
 
   return <StoreManagerProvider {...props} value={manager} />;
