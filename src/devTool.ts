@@ -14,7 +14,7 @@ export function initDevTool(
   }
 
   const ext: ReduxDevToolExtension =
-    typeof window !== undefined ? (window as any).__REDUX_DEVTOOLS_EXTENSION__ : undefined;
+    typeof window !== 'undefined' ? (window as any).__REDUX_DEVTOOLS_EXTENSION__ : undefined;
   if (!ext) return undefined;
 
   const connection = ext.connect({

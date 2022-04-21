@@ -19,7 +19,7 @@
     "start": "tsdx watch",
     "build": "tsdx build",
     "test": "tsdx test --env=jsdom --coverage",
-    "lint": "tsdx lint src",
+    "lint": "eslint src/**",
     "doc": "typedoc src/index.ts"
   },
   "peerDependencies": {
@@ -43,6 +43,9 @@
     "@types/react": "^18.0.5",
     "@types/react-dom": "^18.0.1",
     "@types/use-sync-external-store": "^0.0.3",
+    "eslint": "^8.13.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-config-react-app": "^7.0.1",
     "husky": "^7.0.4",
     "jest": "^27.5.1",
     "prettier": "^2.6.2",
