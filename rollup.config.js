@@ -1,5 +1,4 @@
 // @ts-check
-// import { swc } from 'rollup-plugin-swc3';
 import dts from 'rollup-plugin-dts';
 import typescript from '@rollup/plugin-typescript';
 
@@ -13,22 +12,12 @@ const configs = [
   {
     input: 'src/index.ts',
     output: formats.map((format) => ({
-      file: `dist/index.${format === 'es' ? 'mjs' : 'js'}`,
+      file: `dist/index.${format}.js`,
       format,
       sourcemap: true,
       sourcemapExcludeSources: true,
     })),
-    plugins: [
-      typescript(),
-      // swc({
-      //   jsc: {
-      //     parser: {
-      //       syntax: 'typescript',
-      //     },
-      //     target: 'es5',
-      //   },
-      // }),
-    ],
+    plugins: [typescript()],
   },
   {
     input: './src/index.ts',
