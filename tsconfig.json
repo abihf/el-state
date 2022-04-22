@@ -1,35 +1,32 @@
 {
-  "include": [
-    "src",
-    "types"
+  "exclude": [
+    "example"
   ],
   "compilerOptions": {
-    "target": "es5",
-    "module": "esnext",
+    "alwaysStrict": true,
+    "downlevelIteration": true,
+    "esModuleInterop": true,
+    "importHelpers": false,
+    "jsx": "react",
     "lib": [
       "dom",
-      "esnext"
+      "es6"
     ],
-    "importHelpers": true,
-    "declaration": true,
-    "sourceMap": true,
-    "rootDir": "./src",
-    "strict": true,
+    "moduleResolution": "node",
+    "noFallthroughCasesInSwitch": true,
     "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictPropertyInitialization": true,
-    "downlevelIteration": true,
+    "noImplicitReturns": true,
     "noImplicitThis": true,
-    "alwaysStrict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "moduleResolution": "node",
-    "jsx": "react-jsx",
+    "rootDir": "./src",
     "skipLibCheck": true,
-    "esModuleInterop": true
+    "sourceMap": true,
+    "strict": true,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
+    "target": "es5"
   },
   "typedocOptions": {
     "exclude": "**/*+test.(ts|tsx)",
