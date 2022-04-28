@@ -8,9 +8,10 @@ type Props = {
   extra: string;
 };
 
-const useSelector = createSelector((getStore, extra: string) => {
-  const counter = getStore(counterStore);
-  const name = getStore(nameStore);
+const useSelector = createSelector(
+  counterStore,
+  nameStore
+)(([counter, name], extra: string) => {
   return `Counter ${counter.counter}, Name: ${name}. ${extra}`;
 });
 

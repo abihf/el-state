@@ -4,5 +4,5 @@ node_modules
 dist
 coverage
 docs
-.yarn/cache
-.yarn/install-state.gz
+install-state.gz
+.parcel-cache
